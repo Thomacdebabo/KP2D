@@ -9,6 +9,7 @@ from matplotlib.cm import get_cmap
 from kp2d.networks.inlier_net import InlierNet
 from kp2d.networks.keypoint_net import KeypointNet
 from kp2d.networks.keypoint_resnet import KeypointResnet
+from kp2d.networks.ai84_keypointnet import ai84_keypointnet
 from kp2d.utils.keypoints import draw_keypoints
 from kp2d.datasets.noise_model import pol_2_cart, cart_2_pol
 
@@ -264,6 +265,8 @@ class KeypointNetwithIOLoss(torch.nn.Module):
             self.keypoint_net = KeypointNet(use_color=use_color, do_upsample=do_upsample, with_drop=with_drop, do_cross=do_cross)
         elif keypoint_net_type == 'KeypointResnet':
             self.keypoint_net = KeypointResnet(with_drop=with_drop)
+        elif keypoint_net_type == 'KeypointMAX':
+            self.keypoint_net = ai84_keypointnet()
         else:
             raise NotImplemented('Keypoint net type not supported {}'.format(keypoint_net_type))
         self.keypoint_net = self.keypoint_net.to(self.device)
@@ -322,6 +325,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         source_score, source_uv_pred, source_feat = self.keypoint_net(input_img_aug)
         target_score, target_uv_pred, target_feat = self.keypoint_net(input_img)
 
+
         _, _, Hc, Wc = target_score.shape
 
         # Normalize uv coordinates
@@ -332,7 +336,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         source_uv_warped = _denormalize_uv_coordinates(source_uv_warped_norm, H, W)
 
         # Border mask
-        border_mask = _create_Border_Mask(B, Hc, Wc)
+        border_mask = _create_border_mask(B, Hc, Wc)
         border_mask = border_mask.gt(1e-3).to(self.device)
 
         d_uv_l2_min, d_uv_l2_min_index = _min_l2_norm(source_uv_warped, target_uv_pred, B)
@@ -471,12 +475,14 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
         return int(inlier_mask.sum() > 10 )*torch.nn.functional.mse_loss(inlier_pred, inlier_gt)
 
+
 def _normalize_uv_coordinates(uv_pred, H, W):
     uv_norm = uv_pred.clone()
     uv_norm[:, 0] = (uv_norm[:, 0] / (float(W - 1) / 2.)) - 1.
     uv_norm[:, 1] = (uv_norm[:, 1] / (float(H - 1) / 2.)) - 1.
     uv_norm = uv_norm.permute(0, 2, 3, 1)
     return uv_norm
+
 
 def _denormalize_uv_coordinates(uv_norm, H, W):
     uv_pred = uv_norm.clone()
@@ -485,13 +491,15 @@ def _denormalize_uv_coordinates(uv_norm, H, W):
     uv_pred = uv_pred.permute(0, 3, 1, 2)
     return uv_pred
 
-def _create_Border_Mask(B, Hc, Wc):
+
+def _create_border_mask(B, Hc, Wc):
     border_mask_ori = torch.ones(B, Hc, Wc)
     border_mask_ori[:, 0] = 0
     border_mask_ori[:, Hc - 1] = 0
     border_mask_ori[:, :, 0] = 0
     border_mask_ori[:, :, Wc - 1] = 0
     return border_mask_ori
+
 
 def _min_l2_norm(source_uv_warped, target_uv_pred, B):
     d_uv_mat_abs = torch.abs(source_uv_warped.view(B, 2, -1).unsqueeze(3) - target_uv_pred.view(B, 2, -1).unsqueeze(2))

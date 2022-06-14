@@ -3,7 +3,7 @@
 import argparse
 import os
 from datetime import datetime
-
+import ai8x
 import numpy as np
 import torch
 import torch.optim as optim
@@ -236,7 +236,6 @@ def train(config, train_loader, model, optimizer, epoch, summary):
                     model(data_cuda, debug=True)
                     for k, v in model_submodule(model).vis.items():
                         summary.add_image(k, v)
-
 if __name__ == '__main__':
     args = parse_args()
     main(args.file)
