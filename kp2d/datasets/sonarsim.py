@@ -5,7 +5,6 @@ import glob
 from PIL import Image
 from torch.utils.data import Dataset
 
-from kp2d.datasets.noise_model import NoiseUtility
 class SonarSimLoader(Dataset):
     """
     Sonar Simulator dataset class.
@@ -17,13 +16,13 @@ class SonarSimLoader(Dataset):
     data_transform : Function
         Transformations applied to the sample
     """
-    def __init__(self, root_dir, data_transform=None):
+    def __init__(self, root_dir,noise_util, data_transform=None):
 
         super().__init__()
         self.root_dir = root_dir
 
         self.files=[]
-        self.noise_util = NoiseUtility((440, 512), device='cpu')
+        self.noise_util = noise_util
         for filename in glob.glob(root_dir + '/**/*.jpg'):
             self.files.append(filename)
         self.data_transform = data_transform

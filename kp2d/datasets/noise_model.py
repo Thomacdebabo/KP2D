@@ -4,7 +4,7 @@ from math import pi
 import torch
 from kp2d.utils.image import image_grid
 
-def pol_2_cart(source, fov, epsilon=1e-14, r_min = 5, r_max = 100):
+def pol_2_cart(source, fov, r_min, r_max, epsilon=1e-14):
     effective_range = r_max - r_min
     ang = source[:,:, 0] * fov / 2 * torch.pi / 180
     r = (source[:,:, 1] + 1  + torch.sqrt(torch.tensor(epsilon)))*effective_range + r_min
@@ -15,7 +15,7 @@ def pol_2_cart(source, fov, epsilon=1e-14, r_min = 5, r_max = 100):
     source[:,:, 0] = (temp.imag-r_min)/effective_range  - torch.sqrt(torch.tensor(epsilon))
     return source
 
-def cart_2_pol(source, fov, epsilon=1e-14, r_min = 5, r_max = 100):
+def cart_2_pol(source, fov, r_min, r_max, epsilon=1e-14):
     effective_range = r_max-r_min
     x = source[:,:, 0].clone()*effective_range
     y = (source[:,:, 1].clone() + 1)*effective_range+ r_min
@@ -32,7 +32,7 @@ def to_numpy(img):
 
 class NoiseUtility():
 
-    def __init__(self, shape, fov = 60, r_min = 0.1, r_max = 100, device = 'cpu'):
+    def __init__(self, shape, fov, r_min, r_max, device = 'cpu'):
         self.r_min = r_min
         self.r_max = r_max
         self.shape = shape
@@ -43,6 +43,7 @@ class NoiseUtility():
         H, W = self.shape
         self.x_cart_scale = W/2
         self.y_cart_scale = H/2
+        self.amp = 20
 
     def init_kernel(self):
         kernel = torch.tensor(
@@ -51,7 +52,7 @@ class NoiseUtility():
         return kernel
 
     #TODO: use same function as in the train script
-    def init_map(self, epsilon = 1e-8):
+    def init_map(self):
         H, W = self.shape
         source_grid = image_grid(1, H, W,
                                  dtype = torch.float32,
@@ -65,7 +66,7 @@ class NoiseUtility():
     def filter(self, img):
         filtered = img
 
-        noise = create_row_noise_torch(torch.clip(filtered, 2, 50), device=self.device) * 2
+        noise = create_row_noise_torch(torch.clip(filtered, 2, 50),amp=self.amp, device=self.device) * 2
 
         filtered = filtered + noise
         filtered = add_sparkle(filtered, self.kernel, device=self.device)
