@@ -5,9 +5,9 @@ from kp2d.utils.keypoints import draw_keypoints
 import glob
 
 import numpy as np
-model_path = r"D:\PycharmProjects\KP2D\data\models\kp2d\v4.ckpt"
-model_path_2 = r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise/model.ckpt"
-picture_path = r"D:\MachineLearning\SonarData\SonarDataSets\Simulated\GrateSceneScan"
+model_path = r"C:\\Users\\Dr. Paul von Immel\\Downloads\\sonar_sim_noise/8.ckpt"
+model_path_2 = r"C:\\Users\\Dr. Paul von Immel\\Downloads\\sonar_sim_noise/9.ckpt"
+picture_path = r"D:\\MachineLearning\\SonarData\\SonarDataSets\\Real\\rosbag2_2022_04_06-11-41_16"
 #load model
 checkpoint = torch.load(model_path)
 model_args = checkpoint['config']['model']['params']
