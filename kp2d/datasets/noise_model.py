@@ -4,25 +4,29 @@ from math import pi
 import torch
 from kp2d.utils.image import image_grid
 
-def pol_2_cart(source, fov, r_min, r_max, epsilon=1e-14):
+
+#f and a are parameters to make picture not clipping
+def pol_2_cart(source, fov, r_min, r_max, epsilon=1e-14, f= 1.5, a = 0.2):
+
     effective_range = r_max - r_min
     ang = source[:,:, 0] * fov / 2 * torch.pi / 180
-    r = (source[:,:, 1] + 1 )*effective_range/2 + r_min
+    r = (source[:,:, 1] + 1 + a)*effective_range + r_min*f
 
     temp = torch.polar(r, ang)
 
-    source[:,:, 1] = (temp.real)/effective_range*2 - 1 - torch.sqrt(torch.tensor(epsilon))
-    source[:,:, 0] = (temp.imag-r_min)/effective_range*2  - torch.sqrt(torch.tensor(epsilon))
+    source[:,:, 1] = ((temp.real-r_min*f)/effective_range/f - 1)
+    source[:,:, 0] = (temp.imag)/effective_range/f
     return source
 
-def cart_2_pol(source, fov, r_min, r_max, epsilon=1e-14):
+def cart_2_pol(source, fov, r_min, r_max, epsilon=0, f= 1.5, a = 0.2):
     effective_range = r_max-r_min
-    x = source[:,:, 0].clone()*effective_range
-    y = (source[:,:, 1].clone() + 1)*effective_range+ r_min
+    x = source[:,:, 0].clone()*effective_range * f
+    y = ((source[:,:, 1].clone() + 1)*effective_range + r_min) * f
 
-    source[:,:, 1] = (torch.sqrt(x * x + y * y + epsilon)- r_min)/effective_range - 1
-    source[:,:, 0] = torch.arctan(x / (y + epsilon)) / torch.pi * 2 / fov * 180
+    source[:,:, 1] = ((torch.sqrt(x * x + y * y + epsilon) - r_min*f)/effective_range - 1 -a)
+    source[:,:, 0] = (torch.arctan(x / (y + epsilon)) / torch.pi * 2 / fov * 180)
     return source
+
 
 def to_torch(img, device = 'cpu'):
     return torch.from_numpy(img).unsqueeze(0).unsqueeze(0).float().to(device)
@@ -33,6 +37,7 @@ def to_numpy(img):
 class NoiseUtility():
 
     def __init__(self, shape, fov, r_min, r_max, device = 'cpu'):
+        #super resolution helps mitigate introduced artifacts by the coordinate transforms
         self.super_resolution = 1
         self.r_min = r_min
         self.r_max = r_max
