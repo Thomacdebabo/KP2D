@@ -7,12 +7,12 @@ from kp2d.utils.image import image_grid
 def pol_2_cart(source, fov, r_min, r_max, epsilon=1e-14):
     effective_range = r_max - r_min
     ang = source[:,:, 0] * fov / 2 * torch.pi / 180
-    r = (source[:,:, 1] + 1  + torch.sqrt(torch.tensor(epsilon)))*effective_range + r_min
+    r = (source[:,:, 1] + 1 )*effective_range/2 + r_min
 
     temp = torch.polar(r, ang)
 
-    source[:,:, 1] = (temp.real)/effective_range - 1 - torch.sqrt(torch.tensor(epsilon))
-    source[:,:, 0] = (temp.imag-r_min)/effective_range  - torch.sqrt(torch.tensor(epsilon))
+    source[:,:, 1] = (temp.real)/effective_range*2 - 1 - torch.sqrt(torch.tensor(epsilon))
+    source[:,:, 0] = (temp.imag-r_min)/effective_range*2  - torch.sqrt(torch.tensor(epsilon))
     return source
 
 def cart_2_pol(source, fov, r_min, r_max, epsilon=1e-14):
