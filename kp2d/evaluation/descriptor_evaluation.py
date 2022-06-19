@@ -207,7 +207,11 @@ def compute_homography(data, keep_k_points=1000):
     bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
     matches = bf.match(desc, warped_desc)
     matches_idx = np.array([m.queryIdx for m in matches])
-    m_keypoints = keypoints[matches_idx, :]
+    try:
+        m_keypoints = keypoints[matches_idx, :]
+    except:
+        print(matches_idx)
+        return 0,0,0
     matches_idx = np.array([m.trainIdx for m in matches])
     m_warped_keypoints = warped_keypoints[matches_idx, :]
 
