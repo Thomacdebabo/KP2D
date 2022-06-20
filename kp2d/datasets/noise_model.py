@@ -6,7 +6,7 @@ from kp2d.utils.image import image_grid
 
 
 #f and a are parameters to make picture not clipping
-def pol_2_cart(source, fov, r_min, r_max, epsilon=1e-14, f= 1.5, a = 0.2):
+def pol_2_cart(source, fov, r_min, r_max, epsilon=1e-14, f= 1, a = 0):
 
     effective_range = r_max - r_min
     ang = source[:,:, 0] * fov / 2 * torch.pi / 180
@@ -18,7 +18,7 @@ def pol_2_cart(source, fov, r_min, r_max, epsilon=1e-14, f= 1.5, a = 0.2):
     source[:,:, 0] = (temp.imag)/effective_range/f
     return source
 
-def cart_2_pol(source, fov, r_min, r_max, epsilon=0, f= 1.5, a = 0.2):
+def cart_2_pol(source, fov, r_min, r_max, epsilon=0, f= 1, a = 0):
     effective_range = r_max-r_min
     x = source[:,:, 0].clone()*effective_range * f
     y = ((source[:,:, 1].clone() + 1)*effective_range + r_min) * f
