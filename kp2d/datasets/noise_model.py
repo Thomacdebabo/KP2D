@@ -36,20 +36,27 @@ def to_numpy(img):
 
 class NoiseUtility():
 
-    def __init__(self, shape, fov, r_min, r_max, device = 'cpu'):
+    def __init__(self, shape, fov, r_min, r_max, device = 'cpu', patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18):
         #super resolution helps mitigate introduced artifacts by the coordinate transforms
-        self.super_resolution = 2
+        self.super_resolution = 1
         self.r_min = r_min
         self.r_max = r_max
         self.shape = shape
+
         self.fov = fov
         self.device = device
         self.map, self.map_inv = self.init_map()
         self.kernel = self.init_kernel()
+
         H, W = self.shape
+
         self.x_cart_scale = W/2
         self.y_cart_scale = H/2
+
         self.amp = 20
+        self.patch_ratio = patch_ratio
+        self.scaling_amplitude = scaling_amplitude
+        self.max_angle = pi / max_angle_div
 
 
 
@@ -116,9 +123,9 @@ class NoiseUtility():
         _,_,H, W = img.shape
 
         homography = sample_homography([H, W], perspective=False, scaling = True,
-                                       patch_ratio=0.75,
-                                       scaling_amplitude=0.5,
-                                       max_angle=pi/2)
+                                       patch_ratio=self.patch_ratio,
+                                       scaling_amplitude=self.scaling_amplitude,
+                                       max_angle=self.max_angle)
         homography = torch.from_numpy(homography).float().to(self.device)
         source_grid = image_grid(1, H, W,
                                  dtype=img.dtype,
@@ -173,7 +180,7 @@ def create_row_noise_torch(x, amp= 50, device='cpu'):
 def create_speckle_noise(x,conv_kernel, device = 'cpu'):
     noise = torch.clip(torch.rand(x.shape, device = device)-0.5,-1,1)
     speckle = torch.nn.functional.conv2d(noise, conv_kernel, bias=None, stride=[1, 1], padding='same')
-    return noise
+    return speckle
 
 def add_sparkle(x, conv_kernel, device = 'cpu'):
     sparkle = torch.clip((x-100)-torch.randn(x.shape).to(device),0,255)

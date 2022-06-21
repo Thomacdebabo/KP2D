@@ -69,6 +69,9 @@ def main(file):
                               fov=config.datasets.augmentation.fov,
                               r_min=config.datasets.augmentation.r_min,
                               r_max=config.datasets.augmentation.r_max,
+                              patch_ratio=config.datasets.augmentation.patch_ratio,
+                              scaling_amplitude=config.datasets.augmentation.scaling_amplitude,
+                              max_angle_div=config.datasets.augmentation.max_angle_div,
                               device='cpu')
     printcolor('-'*25 + 'SINGLE GPU ' + '-'*25, 'cyan')
     
