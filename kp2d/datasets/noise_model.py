@@ -38,7 +38,7 @@ class NoiseUtility():
 
     def __init__(self, shape, fov, r_min, r_max, device = 'cpu'):
         #super resolution helps mitigate introduced artifacts by the coordinate transforms
-        self.super_resolution = 1
+        self.super_resolution = 2
         self.r_min = r_min
         self.r_max = r_max
         self.shape = shape
@@ -71,7 +71,7 @@ class NoiseUtility():
                                  device=self.device,
                                  ones=False, normalized=True).clone().permute(0, 2, 3, 1)
 
-        map = pol_2_cart(source_grid.clone().squeeze(0), self.fov, r_min=self.r_min, r_max=self.r_max).unsqueeze(0)
+        map = pol_2_cart(source_grid_2.clone().squeeze(0), self.fov, r_min=self.r_min, r_max=self.r_max).unsqueeze(0)
         map_inv = cart_2_pol(source_grid.clone().squeeze(0), self.fov,r_min=self.r_min, r_max=self.r_max).unsqueeze(0)
         return map, map_inv
 
@@ -116,8 +116,8 @@ class NoiseUtility():
         _,_,H, W = img.shape
 
         homography = sample_homography([H, W], perspective=False, scaling = True,
-                                       patch_ratio=0.8,
-                                       scaling_amplitude=0.2,
+                                       patch_ratio=0.75,
+                                       scaling_amplitude=0.5,
                                        max_angle=pi/2)
         homography = torch.from_numpy(homography).float().to(self.device)
         source_grid = image_grid(1, H, W,
