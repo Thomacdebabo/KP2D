@@ -80,13 +80,13 @@ class NoiseUtility():
         noise = create_row_noise_torch(torch.clip(filtered, 2, 50),amp=self.amp, device=self.device) * 2
 
         filtered = filtered + noise
-        filtered = add_sparkle(filtered, self.kernel, device=self.device)
+        #filtered = add_sparkle(filtered, self.kernel, device=self.device)
         filtered = torch.nn.functional.conv2d(filtered, self.kernel, bias=None, stride=[1,1], padding='same')
 
         #filtered = add_sparkle(filtered, self.kernel, device=self.device)
         #filtered = (filtered * 0.75 + img * 0.25)
 
-        filtered = torch.clip(filtered * (0.5+0.5*create_speckle_noise(filtered, self.kernel, device=self.device)), 0, 255)
+        filtered = torch.clip(filtered * (0.7+0.5*create_speckle_noise(filtered, self.kernel, device=self.device)), 0, 255)
         return filtered
 
     def sim_2_real_filter(self, img):
@@ -171,8 +171,8 @@ def create_row_noise_torch(x, amp= 50, device='cpu'):
     return noise
 
 def create_speckle_noise(x,conv_kernel, device = 'cpu'):
-    noise = torch.clip(torch.randn(x.shape).to(device)*255,-200,255)/255
-    sparkle = torch.nn.functional.conv2d(noise, conv_kernel, bias=None, stride=[1, 1], padding='same')
+    noise = torch.clip(torch.rand(x.shape, device = device)-0.5,-1,1)
+    speckle = torch.nn.functional.conv2d(noise, conv_kernel, bias=None, stride=[1, 1], padding='same')
     return noise
 
 def add_sparkle(x, conv_kernel, device = 'cpu'):
@@ -182,10 +182,10 @@ def add_sparkle(x, conv_kernel, device = 'cpu'):
     x = torch.clip(x+sparkle,0,255)
     return x
 
-def gradient_curve(x,a=0.25, x0=0.5):
+def gradient_curve(x,a=0.4, x0=0.5):
     b = 1 + x0 - a
     x = x/255
-    return (torch.max(x*a,torch.tensor(0)) + torch.max((x-0.5)*(1+0.5-a),torch.tensor(0)))*255
+    return (torch.max(x*a,torch.tensor(0)) + torch.max((x-0.5)*b,torch.tensor(0)))*255
 
 
 
