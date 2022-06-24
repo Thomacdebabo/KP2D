@@ -170,6 +170,7 @@ def evaluation(config, completed_epoch, model, summary,noise_util):
 
     # Save checkpoint
     if config.model.save_checkpoint:
+        config['completed_epochs'] = completed_epoch
         current_model_path = os.path.join(config.model.checkpoint_path, 'model.ckpt')
         printcolor('\nSaving model (epoch:{}) at {}'.format(completed_epoch, current_model_path), 'green')
         torch.save(
