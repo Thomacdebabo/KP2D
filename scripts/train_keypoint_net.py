@@ -119,7 +119,10 @@ def main(file):
         train(config, train_loader, model, optimizer, epoch, summary)
 
         # Model checkpointing, eval, and logging
-        evaluation(config, epoch + 1, model, summary,noise_util)
+        try:
+            evaluation(config, epoch + 1, model, summary,noise_util)
+        except:
+            print("Evaluation failed...")
     printcolor('Training complete, models saved in {}'.format(config.model.checkpoint_path), "green")
 
 def evaluation(config, completed_epoch, model, summary,noise_util):
