@@ -25,11 +25,11 @@ datasets:
     augmentation:
         mode: 'sonar_sim'
         fov: 60
-        r_min: 1.0
+        r_min: 0.1
         r_max: 5.0
-        patch_ratio: 0.95
-        scaling_amplitude: 0.1
-        max_angle_div: 18
+        patch_ratio: 0.8
+        scaling_amplitude: 0.15
+        max_angle_div: 4
 
     train:
         path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"
