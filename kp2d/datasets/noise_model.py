@@ -36,7 +36,7 @@ def to_numpy(img):
 
 class NoiseUtility():
 
-    def __init__(self, shape, fov, r_min, r_max, device = 'cpu', patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18):
+    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 30, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18):
         #super resolution helps mitigate introduced artifacts by the coordinate transforms
         self.super_resolution = 1
         self.r_min = r_min
@@ -53,7 +53,7 @@ class NoiseUtility():
         self.x_cart_scale = W/2
         self.y_cart_scale = H/2
 
-        self.amp = 20
+        self.amp = amp
         self.patch_ratio = patch_ratio
         self.scaling_amplitude = scaling_amplitude
         self.max_angle = pi / max_angle_div
@@ -90,10 +90,7 @@ class NoiseUtility():
         filtered = add_sparkle(filtered, self.kernel, device=self.device)
         filtered = torch.nn.functional.conv2d(filtered, self.kernel, bias=None, stride=[1,1], padding='same')
 
-        #filtered = add_sparkle(filtered, self.kernel, device=self.device)
-        #filtered = (filtered * 0.75 + img * 0.25)
-
-        filtered = torch.clip(filtered * (0.3+0.7*create_speckle_noise(filtered, self.kernel, device=self.device)), 0, 255)
+        filtered = torch.clip(filtered * (0.5+0.6*create_speckle_noise(filtered, self.kernel, device=self.device)), 0, 255)
         return filtered
 
     def sim_2_real_filter(self, img):
@@ -143,7 +140,7 @@ class NoiseUtility():
     def filter_sample(self, sample):
         img = sample['image']
         img_aug = sample['image_aug']
-        amp = self.amp*torch.rand(1)
+        amp = self.amp*(0.3+torch.rand(1))
         sample['image'] = self.filter(img, amp=amp).to(img.dtype)
         sample['image_aug'] = self.filter(img_aug, amp=amp).to(img_aug.dtype)
         return sample
@@ -185,13 +182,13 @@ def add_sparkle(x, conv_kernel, device = 'cpu'):
     sparkle = torch.clip((x-100)-torch.randn(x.shape).to(device),0,255)
     #sparkle = torch.clip((kornia.morphology.dilation(x, kernel, iterations=2).astype('int8')-50)*2-np.random.normal(20,100,x.shape),0,255)
     sparkle = torch.nn.functional.conv2d(sparkle, conv_kernel, bias=None, stride=[1,1], padding='same')
-    x = torch.clip(x*0.7+sparkle*0.3,0,255)
+    x = torch.clip(x+sparkle*0.5,0,255)
     return x
 
-def gradient_curve(x,a=0.2, x0=0.5):
-    b = 1 + x0 - a
+def gradient_curve(x,a=0.25, x0=0.5):
+    b = (1 - a*x0)/(1-x0)-a
     x = x/255
-    return (torch.max(x*a,torch.tensor(0)) + torch.max((x-x0)*b,torch.tensor(0)))*255
+    return (torch.max(x*a,torch.tensor(0)) + torch.max((x-x0),torch.tensor(0))*b)*255
 
 
 
