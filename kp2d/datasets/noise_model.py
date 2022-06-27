@@ -91,6 +91,9 @@ class NoiseUtility():
         filtered = torch.nn.functional.conv2d(filtered, self.kernel, bias=None, stride=[1,1], padding='same')
 
         filtered = torch.clip(filtered * (0.5+0.6*create_speckle_noise(filtered, self.kernel, device=self.device)), 0, 255)
+
+        filtered = filtered/filtered.max()*255
+
         return filtered
 
     def sim_2_real_filter(self, img):
