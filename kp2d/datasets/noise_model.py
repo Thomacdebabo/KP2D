@@ -36,9 +36,9 @@ def to_numpy(img):
 
 class NoiseUtility():
 
-    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 30, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18):
+    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 30, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18, super_resolution = 2):
         #super resolution helps mitigate introduced artifacts by the coordinate transforms
-        self.super_resolution = 1
+        self.super_resolution = super_resolution
         self.r_min = r_min
         self.r_max = r_max
         self.shape = shape
@@ -85,6 +85,9 @@ class NoiseUtility():
     def filter(self, img, amp=20):
         filtered = gradient_curve(img)
         noise = create_row_noise_torch(torch.clip(filtered, 2, 50),amp=amp, device=self.device) * 2
+        for i in range(round(self.super_resolution)):
+            noise = torch.nn.functional.conv2d(noise, self.kernel, bias=None, stride=[1, 1], padding='same')
+        noise = noise*self.super_resolution
 
         filtered = filtered + noise
         filtered = add_sparkle(filtered, self.kernel, device=self.device)

@@ -72,6 +72,7 @@ def main(file):
                               patch_ratio=config.datasets.augmentation.patch_ratio,
                               scaling_amplitude=config.datasets.augmentation.scaling_amplitude,
                               max_angle_div=config.datasets.augmentation.max_angle_div,
+                              super_resolution=config.datasets.augmentation.super_resolution,
                               device='cpu')
     printcolor('-'*25 + 'SINGLE GPU ' + '-'*25, 'cyan')
     

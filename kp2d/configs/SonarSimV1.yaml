@@ -30,6 +30,7 @@ datasets:
         patch_ratio: 0.8
         scaling_amplitude: 0.15
         max_angle_div: 4
+        super_resolution: 1
 
     train:
         path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"

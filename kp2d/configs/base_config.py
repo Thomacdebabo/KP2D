@@ -77,6 +77,7 @@ cfg.datasets.augmentation.r_max = 5.0
 cfg.datasets.augmentation.patch_ratio = 0.95
 cfg.datasets.augmentation.scaling_amplitude = 0.1
 cfg.datasets.augmentation.max_angle_div = 18
+cfg.datasets.augmentation.super_resolution = 1
 cfg.datasets.augmentation.mode = 'sonar_sim'
 
 ########################################################################################################################

@@ -28,6 +28,7 @@ datasets:
         patch_ratio: 0.9
         scaling_amplitude: 0.25
         max_angle_div: 4
+        super_resolution: 1
 
     train:
         path: '../../../scratch/rueeggth/dataset/SonarDataSets/Simulated'
