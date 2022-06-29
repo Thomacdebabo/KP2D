@@ -73,6 +73,12 @@ def main(file):
                               scaling_amplitude=config.datasets.augmentation.scaling_amplitude,
                               max_angle_div=config.datasets.augmentation.max_angle_div,
                               super_resolution=config.datasets.augmentation.super_resolution,
+                              preprocessing_gradient=config.datasets.augmentation.preprocessing_gradient,
+                              add_row_noise=config.datasets.augmentation.add_row_noise,
+                              add_sparkle_noise=config.datasets.augmentation.add_sparkle_noise,
+                              blur=config.datasets.augmentation.blur,
+                              add_speckle_noise=config.datasets.augmentation.add_speckle_noise,
+                              normalize=config.datasets.augmentation.normalize,
                               device='cpu')
     printcolor('-'*25 + 'SINGLE GPU ' + '-'*25, 'cyan')
     

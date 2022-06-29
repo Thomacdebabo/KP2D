@@ -36,7 +36,8 @@ def to_numpy(img):
 
 class NoiseUtility():
 
-    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 30, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18, super_resolution = 2):
+    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 30, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18, super_resolution = 2,
+                 preprocessing_gradient = True, add_row_noise = True, add_sparkle_noise = True, blur = True, add_speckle_noise = True, normalize = True):
         #super resolution helps mitigate introduced artifacts by the coordinate transforms
         self.super_resolution = super_resolution
         self.r_min = r_min
@@ -57,6 +58,13 @@ class NoiseUtility():
         self.patch_ratio = patch_ratio
         self.scaling_amplitude = scaling_amplitude
         self.max_angle = pi / max_angle_div
+
+        self.preprocessing_gradient = preprocessing_gradient
+        self.add_row_noise = add_row_noise
+        self.add_sparkle_noise = add_sparkle_noise
+        self.blur = blur
+        self.add_speckle_noise = add_speckle_noise
+        self.normalize = normalize
 
 
 
@@ -83,19 +91,24 @@ class NoiseUtility():
         return map, map_inv
 
     def filter(self, img, amp=20):
-        filtered = gradient_curve(img)
-        noise = create_row_noise_torch(torch.clip(filtered, 2, 50),amp=amp, device=self.device) * 2
-        for i in range(round(self.super_resolution)):
-            noise = torch.nn.functional.conv2d(noise, self.kernel, bias=None, stride=[1, 1], padding='same')
-        noise = noise*self.super_resolution
+        filtered = img
+        if self.preprocessing_gradient:
+            filtered = gradient_curve(filtered)
+        if self.add_row_noise:
+            noise = create_row_noise_torch(torch.clip(filtered, 2, 50),amp=amp, device=self.device) * 2
+            for i in range(round(self.super_resolution)):
+                noise = torch.nn.functional.conv2d(noise, self.kernel, bias=None, stride=[1, 1], padding='same')
+            noise = noise*self.super_resolution
 
-        filtered = filtered + noise
-        filtered = add_sparkle(filtered, self.kernel, device=self.device)
-        filtered = torch.nn.functional.conv2d(filtered, self.kernel, bias=None, stride=[1,1], padding='same')
-
-        filtered = torch.clip(filtered * (0.5+0.6*create_speckle_noise(filtered, self.kernel, device=self.device)), 0, 255)
-
-        filtered = filtered/filtered.max()*255
+            filtered = filtered + noise
+        if self.add_sparkle_noise:
+            filtered = add_sparkle(filtered, self.kernel, device=self.device)
+        if self.blur:
+            filtered = torch.nn.functional.conv2d(filtered, self.kernel, bias=None, stride=[1,1], padding='same')
+        if self.add_speckle_noise:
+            filtered = torch.clip(filtered * (0.5+0.6*create_speckle_noise(filtered, self.kernel, device=self.device)), 0, 255)
+        if self.normalize:
+            filtered = filtered/filtered.max()*255
 
         return filtered
 

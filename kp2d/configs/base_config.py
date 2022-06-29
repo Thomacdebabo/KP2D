@@ -79,6 +79,12 @@ cfg.datasets.augmentation.scaling_amplitude = 0.1
 cfg.datasets.augmentation.max_angle_div = 18
 cfg.datasets.augmentation.super_resolution = 1
 cfg.datasets.augmentation.mode = 'sonar_sim'
+cfg.datasets.augmentation.preprocessing_gradient = True
+cfg.datasets.augmentation.add_row_noise = True
+cfg.datasets.augmentation.add_sparkle_noise = True
+cfg.datasets.augmentation.blur = True
+cfg.datasets.augmentation.add_speckle_noise = True
+cfg.datasets.augmentation.normalize = True
 
 ########################################################################################################################
 ### DATASETS.TRAIN
