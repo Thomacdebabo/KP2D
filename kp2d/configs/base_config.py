@@ -70,7 +70,7 @@ cfg.datasets = CN()
 ########################################################################################################################
 cfg.datasets.augmentation = CN()
 cfg.datasets.augmentation.image_shape = (512, 512)              # Image shape
-cfg.datasets.augmentation.jittering = (0.5, 0.5, 0.2, 0.05)     # Color jittering values
+cfg.datasets.augmentation.jittering = (0, 0, 0, 0)     # Color jittering values
 cfg.datasets.augmentation.fov = 60
 cfg.datasets.augmentation.r_min = 0.1
 cfg.datasets.augmentation.r_max = 5.0
