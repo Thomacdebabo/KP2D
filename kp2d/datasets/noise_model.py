@@ -198,10 +198,10 @@ def create_speckle_noise(x,conv_kernel, device = 'cpu'):
     return speckle
 
 def add_sparkle(x, conv_kernel, device = 'cpu'):
-    sparkle = torch.clip((x-100)-torch.randn(x.shape).to(device),0,255)
+    sparkle = torch.clip((x-180)*5,0,255)
     #sparkle = torch.clip((kornia.morphology.dilation(x, kernel, iterations=2).astype('int8')-50)*2-np.random.normal(20,100,x.shape),0,255)
     sparkle = torch.nn.functional.conv2d(sparkle, conv_kernel, bias=None, stride=[1,1], padding='same')
-    x = torch.clip(x+sparkle*0.5,0,255)
+    x = torch.clip(x*0.7+sparkle*0.3,0,255)
     return x
 
 def gradient_curve(x,a=0.25, x0=0.5):
