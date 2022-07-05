@@ -37,7 +37,7 @@ def to_numpy(img):
 class NoiseUtility():
 
     def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 30, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18, super_resolution = 2,
-                 preprocessing_gradient = True, add_row_noise = True, add_sparkle_noise = True, blur = True, add_speckle_noise = True, normalize = True):
+                 preprocessing_gradient = True, add_row_noise = True, add_normal_noise = True, add_sparkle_noise = True, blur = True, add_speckle_noise = True, normalize = True):
         #super resolution helps mitigate introduced artifacts by the coordinate transforms
         self.super_resolution = super_resolution
         self.r_min = r_min
@@ -61,6 +61,7 @@ class NoiseUtility():
 
         self.preprocessing_gradient = preprocessing_gradient
         self.add_row_noise = add_row_noise
+        self.add_normal_noise = add_normal_noise
         self.add_sparkle_noise = add_sparkle_noise
         self.blur = blur
         self.add_speckle_noise = add_speckle_noise
@@ -96,6 +97,13 @@ class NoiseUtility():
             filtered = gradient_curve(filtered)
         if self.add_row_noise:
             noise = create_row_noise_torch(torch.clip(filtered, 2, 50),amp=amp, device=self.device) * 2
+            for i in range(round(self.super_resolution)):
+                noise = torch.nn.functional.conv2d(noise, self.kernel, bias=None, stride=[1, 1], padding='same')
+            noise = noise*self.super_resolution
+
+            filtered = filtered + noise
+        if self.add_normal_noise:
+            noise = torch.clip((torch.rand(filtered.shape)-0.5)*amp,0,255)
             for i in range(round(self.super_resolution)):
                 noise = torch.nn.functional.conv2d(noise, self.kernel, bias=None, stride=[1, 1], padding='same')
             noise = noise*self.super_resolution

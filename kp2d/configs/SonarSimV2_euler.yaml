@@ -30,12 +30,13 @@ datasets:
         scaling_amplitude: 0.25
         max_angle_div: 4
         super_resolution: 2
-        preprocessing_gradient: False
-        add_row_noise: False
-        add_sparkle_noise: False
-        blur: False
-        add_speckle_noise: False
-        normalize: False
+        preprocessing_gradient: True
+        add_row_noise: True
+        add_normal_noise: False
+        add_sparkle_noise: True
+        blur: True
+        add_speckle_noise: True
+        normalize: True
     train:
         path: '../../../scratch/rueeggth/dataset/SonarDataSets/Simulated'
         num_workers: 16

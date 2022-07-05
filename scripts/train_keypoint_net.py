@@ -75,6 +75,7 @@ def main(file):
                               super_resolution=config.datasets.augmentation.super_resolution,
                               preprocessing_gradient=config.datasets.augmentation.preprocessing_gradient,
                               add_row_noise=config.datasets.augmentation.add_row_noise,
+                              add_normal_noise=config.datasets.augmentation.add_normal_noise,
                               add_sparkle_noise=config.datasets.augmentation.add_sparkle_noise,
                               blur=config.datasets.augmentation.blur,
                               add_speckle_noise=config.datasets.augmentation.add_speckle_noise,
