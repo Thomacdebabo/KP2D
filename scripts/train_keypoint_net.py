@@ -112,8 +112,14 @@ def main(file):
         date_time = datetime.now().strftime("%m_%d_%Y__%H_%M_%S")
         date_time = model_submodule(model).__class__.__name__ + '_' + date_time
         config.model.checkpoint_path = os.path.join(config.model.checkpoint_path, date_time)
+    # added because when you run multiple jobs at once they sometimes overwrite each other
+    i_dir = 2
+    while os.path.isdir(config.model.checkpoint_path):
+        config.model.checkpoint_path = config.model.checkpoint_path + "_" + str(i_dir)
+        i_dir += 1
 
     print('Saving models at {}'.format(config.model.checkpoint_path))
+
     os.makedirs(config.model.checkpoint_path, exist_ok=True)
 
 
