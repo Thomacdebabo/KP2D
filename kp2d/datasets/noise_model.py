@@ -36,8 +36,8 @@ def to_numpy(img):
 
 class NoiseUtility():
 
-    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 30, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18, super_resolution = 2,
-                 preprocessing_gradient = True, add_row_noise = True, add_normal_noise = True, add_sparkle_noise = True, blur = True, add_speckle_noise = True, normalize = True):
+    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 50, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18, super_resolution = 1,
+                 preprocessing_gradient = True, add_row_noise = True, add_normal_noise = True, add_artifact = True, add_sparkle_noise = True, blur = True, add_speckle_noise = True, normalize = True):
         #super resolution helps mitigate introduced artifacts by the coordinate transforms
         self.super_resolution = super_resolution
         self.r_min = r_min
@@ -66,6 +66,8 @@ class NoiseUtility():
         self.blur = blur
         self.add_speckle_noise = add_speckle_noise
         self.normalize = normalize
+        self.post_noise = False
+        self.add_artifact = add_artifact
 
 
 
@@ -107,8 +109,19 @@ class NoiseUtility():
             for i in range(round(self.super_resolution)):
                 noise = torch.nn.functional.conv2d(noise, self.kernel, bias=None, stride=[1, 1], padding='same')
             noise = noise*self.super_resolution
-
             filtered = filtered + noise
+        if self.add_artifact:
+            artifact = torch.zeros(filtered.shape)
+            noise = torch.clip((torch.rand(filtered.shape) - 0.7) * amp*7, 0, 255)
+            mid = int(self.shape[1] * self.super_resolution / 2)
+            artifact[:, :, :, mid - 2:mid + 2] = noise[:, :, :, mid - 2:mid + 2]
+            for i in range(round(self.super_resolution)):
+                artifact = torch.nn.functional.conv2d(artifact, self.kernel, bias=None, stride=[1, 1], padding='same')
+            artifact = artifact * self.super_resolution
+
+
+            filtered = filtered + artifact
+
         if self.add_sparkle_noise:
             filtered = add_sparkle(filtered, self.kernel, device=self.device)
         if self.blur:
@@ -120,6 +133,21 @@ class NoiseUtility():
 
         return filtered
 
+    def add_noise_function(self, sample):
+        img = sample['image']
+        aug = sample['image_aug']
+        noise = torch.clip((torch.rand(img[0,:,:].shape) - 0.5) * self.amp, 0, 255).unsqueeze(0).unsqueeze(0)
+        noise_aug = torch.clip((torch.rand(aug[0,:,:].shape) - 0.5) * self.amp, 0, 255).unsqueeze(0).unsqueeze(0)
+        for i in range(round(self.super_resolution)):
+            noise = torch.nn.functional.conv2d(noise, self.kernel, bias=None, stride=[1, 1], padding='same')
+            noise_aug = torch.nn.functional.conv2d(noise_aug, self.kernel, bias=None, stride=[1, 1], padding='same')
+
+        noise = noise * self.super_resolution
+        noise_aug = noise_aug * self.super_resolution
+
+        sample['image'] = img + noise.squeeze(0)
+        sample['image_aug'] = aug + noise_aug.squeeze(0)
+        return sample
     def sim_2_real_filter(self, img):
         img = to_torch(img, device=self.device)
         if img.shape.__len__() == 5:

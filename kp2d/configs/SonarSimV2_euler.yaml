@@ -33,6 +33,7 @@ datasets:
         preprocessing_gradient: True
         add_row_noise: True
         add_normal_noise: False
+        add_artifact: True
         add_sparkle_noise: True
         blur: True
         add_speckle_noise: True

@@ -20,7 +20,7 @@ from train_keypoint_net_utils import (_set_seeds, sample_to_cuda,
                                       setup_datasets_and_dataloaders)
 
 from kp2d.datasets.noise_model import NoiseUtility
-
+#torch.autograd.set_detect_anomaly(True)
 def parse_args():
     """Parse arguments for training script"""
     parser = argparse.ArgumentParser(description='KP2D training script')
@@ -76,6 +76,7 @@ def main(file):
                               preprocessing_gradient=config.datasets.augmentation.preprocessing_gradient,
                               add_row_noise=config.datasets.augmentation.add_row_noise,
                               add_normal_noise=config.datasets.augmentation.add_normal_noise,
+                              add_artifact=config.datasets.augmentation.add_artifact,
                               add_sparkle_noise=config.datasets.augmentation.add_sparkle_noise,
                               blur=config.datasets.augmentation.blur,
                               add_speckle_noise=config.datasets.augmentation.add_speckle_noise,

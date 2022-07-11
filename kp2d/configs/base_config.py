@@ -82,6 +82,7 @@ cfg.datasets.augmentation.mode = 'sonar_sim'
 cfg.datasets.augmentation.preprocessing_gradient = True
 cfg.datasets.augmentation.add_row_noise = True
 cfg.datasets.augmentation.add_normal_noise = False
+cfg.datasets.augmentation.add_artifact = True
 cfg.datasets.augmentation.add_sparkle_noise = True
 cfg.datasets.augmentation.blur = True
 cfg.datasets.augmentation.add_speckle_noise = True

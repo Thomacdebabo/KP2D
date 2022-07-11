@@ -41,6 +41,8 @@ def image_transforms(noise_util, config):
 
             sample = noise_util.filter_sample(sample)
             sample = noise_util.cart_2_pol_sample(sample)
+            if noise_util.post_noise:
+                sample = noise_util.add_noise_function(sample)
             sample = to_tensor_sonar_sample(sample)
 
 
