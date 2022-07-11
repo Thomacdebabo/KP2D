@@ -33,12 +33,13 @@ datasets:
         max_angle_div: 4
         super_resolution: 2
         preprocessing_gradient: True
-        add_row_noise: False
+        add_row_noise: True
         add_normal_noise: False
         add_sparkle_noise: False
-        blur: False
+        add_artifact: True
+        blur: True
         add_speckle_noise: False
-        normalize: True
+        normalize: False
 
     train:
         path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"

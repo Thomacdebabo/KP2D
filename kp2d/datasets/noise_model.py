@@ -36,7 +36,7 @@ def to_numpy(img):
 
 class NoiseUtility():
 
-    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 50, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18, super_resolution = 1,
+    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 20, artifact_amp = 200, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18, super_resolution = 1,
                  preprocessing_gradient = True, add_row_noise = True, add_normal_noise = True, add_artifact = True, add_sparkle_noise = True, blur = True, add_speckle_noise = True, normalize = True):
         #super resolution helps mitigate introduced artifacts by the coordinate transforms
         self.super_resolution = super_resolution
@@ -53,8 +53,11 @@ class NoiseUtility():
 
         self.x_cart_scale = W/2
         self.y_cart_scale = H/2
-
+        self.artifact_amp = artifact_amp
         self.amp = amp
+
+        self.artifact_width = 2*self.super_resolution
+
         self.patch_ratio = patch_ratio
         self.scaling_amplitude = scaling_amplitude
         self.max_angle = pi / max_angle_div
@@ -98,7 +101,7 @@ class NoiseUtility():
         if self.preprocessing_gradient:
             filtered = gradient_curve(filtered)
         if self.add_row_noise:
-            noise = create_row_noise_torch(torch.clip(filtered, 2, 50),amp=amp, device=self.device) * 2
+            noise = create_row_noise_torch(torch.clip(filtered, 0, 50),amp=amp, device=self.device) * 2
             for i in range(round(self.super_resolution)):
                 noise = torch.nn.functional.conv2d(noise, self.kernel, bias=None, stride=[1, 1], padding='same')
             noise = noise*self.super_resolution
@@ -112,14 +115,13 @@ class NoiseUtility():
             filtered = filtered + noise
         if self.add_artifact:
             artifact = torch.zeros(filtered.shape)
-            noise = torch.clip((torch.rand(filtered.shape) - 0.7) * amp*7, 0, 255)
+            attenuation = torch.linspace(0,self.artifact_amp/0.3,filtered.shape[3])*(torch.rand(filtered.shape[3])+1)
+            noise = torch.clip((torch.rand(filtered.shape) - 0.7) * attenuation[:,None], 0, 255)
             mid = int(self.shape[1] * self.super_resolution / 2)
-            artifact[:, :, :, mid - 2:mid + 2] = noise[:, :, :, mid - 2:mid + 2]
+            artifact[:, :, :, mid - self.artifact_width:mid + self.artifact_width] = noise[:, :, :, mid - self.artifact_width:mid + self.artifact_width]
             for i in range(round(self.super_resolution)):
                 artifact = torch.nn.functional.conv2d(artifact, self.kernel, bias=None, stride=[1, 1], padding='same')
-            artifact = artifact * self.super_resolution
-
-
+                artifact = torch.nn.functional.conv2d(artifact, self.kernel, bias=None, stride=[1, 1], padding='same')
             filtered = filtered + artifact
 
         if self.add_sparkle_noise:
@@ -225,8 +227,8 @@ class NoiseUtility():
 def create_row_noise_torch(x, amp= 50, device='cpu'):
     noise = x.clone().to(device)
     for r in range(x.shape[2]):
-        noise[:,:,r,:] =(torch.randn(x.shape[3])*amp-amp/2 + torch.randn(x.shape[3])*amp/2+amp/2).to(device)/(torch.sum(x[:,:,r,:])/torch.tensor(np.random.normal(2500,1000,1)).to(device)+1)
-    return noise
+        noise[:,:,r,:] =(torch.rand(x.shape[3])-0.5).to(device)/(torch.sum(x[:,:,r,:])/torch.tensor(np.random.normal(2500,1000,1)).to(device)+1)
+    return noise*amp
 
 def create_speckle_noise(x,conv_kernel, device = 'cpu'):
     noise = torch.clip(torch.rand(x.shape, device = device)-0.5,-1,1)
