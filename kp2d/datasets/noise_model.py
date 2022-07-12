@@ -36,7 +36,7 @@ def to_numpy(img):
 
 class NoiseUtility():
 
-    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 20, artifact_amp = 200, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18, super_resolution = 2,
+    def __init__(self, shape, fov, r_min, r_max, device = 'cpu',amp = 50, artifact_amp = 200, patch_ratio = 0.95, scaling_amplitude = 0.1, max_angle_div = 18, super_resolution = 2,
                  preprocessing_gradient = True, add_row_noise = True, add_normal_noise = False, add_artifact = True, add_sparkle_noise = False, blur = False, add_speckle_noise = False, normalize = True):
         #super resolution helps mitigate introduced artifacts by the coordinate transforms
         self.super_resolution = super_resolution
@@ -96,7 +96,7 @@ class NoiseUtility():
         map_inv = cart_2_pol(source_grid.clone().squeeze(0), self.fov,r_min=self.r_min, r_max=self.r_max).unsqueeze(0)
         return map, map_inv
 
-    def filter(self, img, amp=20):
+    def filter(self, img, amp=30):
         filtered = img
         if self.preprocessing_gradient:
             filtered = gradient_curve(filtered)
