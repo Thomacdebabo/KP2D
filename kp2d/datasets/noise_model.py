@@ -100,6 +100,7 @@ class NoiseUtility():
         filtered = img
         if self.preprocessing_gradient:
             filtered = gradient_curve(filtered)
+
         if self.add_row_noise:
             noise = create_row_noise_torch(torch.clip(filtered, 0, 50),amp=amp, device=self.device) * 2
             for i in range(round(self.super_resolution)):
@@ -107,15 +108,17 @@ class NoiseUtility():
             noise = noise*self.super_resolution
 
             filtered = torch.clip(filtered + noise,0,255)
+
         if self.add_normal_noise:
             noise = torch.clip((torch.rand(filtered.shape)-0.5)*amp,0,255).to(self.device)
             for i in range(round(self.super_resolution)):
                 noise = torch.nn.functional.conv2d(noise, self.kernel, bias=None, stride=[1, 1], padding='same')
             noise = noise*self.super_resolution
             filtered = torch.clip(filtered + noise,0,255)
+
         if self.add_artifact:
             artifact = torch.zeros(filtered.shape).to(self.device)
-            attenuation = torch.linspace(0,self.artifact_amp/0.3,filtered.shape[3])*(torch.rand(filtered.shape[3])+1)
+            attenuation = torch.linspace(self.artifact_amp/0.3*0.1,self.artifact_amp/0.3,filtered.shape[3])*(torch.rand(filtered.shape[3])+1)
 
             noise = torch.clip((torch.rand(filtered.shape).to(self.device) - 0.7) * attenuation[:,None].to(self.device), 0, 255)
             mid = int(self.shape[1] * self.super_resolution / 2)
@@ -127,10 +130,13 @@ class NoiseUtility():
 
         if self.add_sparkle_noise:
             filtered = add_sparkle(filtered, self.kernel, device=self.device)
+
         if self.blur:
             filtered = torch.nn.functional.conv2d(filtered, self.kernel, bias=None, stride=[1,1], padding='same')
+
         if self.add_speckle_noise:
             filtered = torch.clip(filtered * (0.5+0.6*create_speckle_noise(filtered, self.kernel, device=self.device)), 0, 255)
+
         if self.normalize:
             filtered = filtered/filtered.max()*255
 
