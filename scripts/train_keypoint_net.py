@@ -73,6 +73,8 @@ def main(file):
                               scaling_amplitude=config.datasets.augmentation.scaling_amplitude,
                               max_angle_div=config.datasets.augmentation.max_angle_div,
                               super_resolution=config.datasets.augmentation.super_resolution,
+                              amp=config.datasets.augmentation.amp,
+                              artifact_amp=config.datasets.augmentation.artifact_amp,
                               preprocessing_gradient=config.datasets.augmentation.preprocessing_gradient,
                               add_row_noise=config.datasets.augmentation.add_row_noise,
                               add_normal_noise=config.datasets.augmentation.add_normal_noise,
@@ -81,7 +83,7 @@ def main(file):
                               blur=config.datasets.augmentation.blur,
                               add_speckle_noise=config.datasets.augmentation.add_speckle_noise,
                               normalize=config.datasets.augmentation.normalize,
-                              device='cpu')
+                              device=config.device)
     printcolor('-'*25 + 'SINGLE GPU ' + '-'*25, 'cyan')
     
     if config.arch.seed is not None:

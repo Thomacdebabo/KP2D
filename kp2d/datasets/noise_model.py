@@ -96,7 +96,7 @@ class NoiseUtility():
         map_inv = cart_2_pol(source_grid.clone().squeeze(0), self.fov,r_min=self.r_min, r_max=self.r_max).unsqueeze(0)
         return map, map_inv
 
-    def filter(self, img, amp=30):
+    def filter(self, img, amp=30, artifact_amp = 200):
         filtered = img
         if self.preprocessing_gradient:
             filtered = gradient_curve(filtered)
@@ -117,12 +117,7 @@ class NoiseUtility():
             filtered = torch.clip(filtered + noise,0,255)
 
         if self.add_artifact:
-            artifact = torch.zeros(filtered.shape).to(self.device)
-            attenuation = torch.linspace(self.artifact_amp/0.3*0.1,self.artifact_amp/0.3,filtered.shape[3])*(torch.rand(filtered.shape[3])+1)
-
-            noise = torch.clip((torch.rand(filtered.shape).to(self.device) - 0.7) * attenuation[:,None].to(self.device), 0, 255)
-            mid = int(self.shape[1] * self.super_resolution / 2)
-            artifact[:, :, :, mid - self.artifact_width:mid + self.artifact_width] = noise[:, :, :, mid - self.artifact_width:mid + self.artifact_width]
+            artifact = create_artifact(filtered.shape, self.device, artifact_amp, self.artifact_width, self.super_resolution)
             for i in range(round(self.super_resolution)):
                 artifact = torch.nn.functional.conv2d(artifact, self.kernel, bias=None, stride=[1, 1], padding='same')
                 artifact = torch.nn.functional.conv2d(artifact, self.kernel, bias=None, stride=[1, 1], padding='same')
@@ -164,7 +159,7 @@ class NoiseUtility():
         else:
             mapped = self.pol_2_cart_torch(img.unsqueeze(-1))
 
-        mapped = self.filter(mapped)
+        mapped = self.filter(mapped, amp=self.amp, artifact_amp=self.artifact_amp)
         mapped = self.cart_2_pol_torch(mapped).squeeze(0)
         if img.shape.__len__() == 5:
             return torch.stack((mapped, mapped, mapped), axis=1).to(img.dtype)
@@ -204,9 +199,10 @@ class NoiseUtility():
     def filter_sample(self, sample):
         img = sample['image']
         img_aug = sample['image_aug']
-        amp = self.amp*(0.3+torch.rand(1))
-        sample['image'] = self.filter(img, amp=amp).to(img.dtype)
-        sample['image_aug'] = self.filter(img_aug, amp=amp).to(img_aug.dtype)
+        amp = self.amp*(0.3+torch.rand(1)).item()
+        artifact_amp = self.artifact_amp*(0.3+torch.rand(1)).item()
+        sample['image'] = self.filter(img, amp=amp, artifact_amp=artifact_amp).to(img.dtype)
+        sample['image_aug'] = self.filter(img_aug, amp=amp, artifact_amp=artifact_amp).to(img_aug.dtype)
         return sample
 
     def cart_2_pol_sample(self, sample):
@@ -232,10 +228,11 @@ class NoiseUtility():
                                                 align_corners=True)
 
 def create_row_noise_torch(x, amp= 50, device='cpu'):
+    amp = torch.tensor(amp)
     noise = x.clone().to(device)
     for r in range(x.shape[2]):
         noise[:,:,r,:] =(torch.rand(x.shape[3])-0.5).to(device)/(torch.sum(x[:,:,r,:])/torch.tensor(np.random.normal(2500,1000,1)).to(device)+1)
-    return noise*amp
+    return noise*amp.to(device)
 
 def create_speckle_noise(x,conv_kernel, device = 'cpu'):
     noise = torch.clip(torch.rand(x.shape, device = device)-0.5,-1,1)
@@ -254,5 +251,16 @@ def gradient_curve(x,a=0.25, x0=0.5):
     x = x/255
     return (torch.max(x*a,torch.tensor(0)) + torch.max((x-x0),torch.tensor(0))*b)*255
 
+def create_artifact(shape, device, artifact_amp, artifact_width, super_resolution):
+    artifact = torch.zeros(shape).to(device)
+    attenuation = torch.linspace(artifact_amp / 0.3 * 0.1, artifact_amp / 0.3, shape[3]) * (
+                torch.rand(shape[3]) + 1)
+
+    noise = torch.clip((torch.rand(shape).to(device) - 0.7) * attenuation[:, None].to(device), 0,
+                       255)
+    mid = int(shape[3] * super_resolution / 2)
+
+    artifact[:, :, :, mid -artifact_width:mid + artifact_width] = noise[:, :, :,mid - artifact_width:mid + artifact_width]
+    return artifact
 
 
