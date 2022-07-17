@@ -9,8 +9,8 @@ import cv2
 import numpy as np
 
 from kp2d.utils.keypoints import warp_keypoints
-
-
+from kp2d.datasets.noise_model import pol_2_cart,cart_2_pol
+import torch
 def select_k_best(points, descriptors, k):
     """ Select the k most probable points (and strip their probability).
     points has shape (num_points, 3) where the last coordinate is the probability.
@@ -131,7 +131,7 @@ def compute_matching_score(data, keep_k_points=1000):
     matches_idx = np.array([m.trainIdx for m in matches])
     m_warped_keypoints = warped_keypoints[matches_idx, :]
 
-    true_warped_keypoints = warp_keypoints(m_warped_keypoints, np.linalg.inv(real_H))
+    true_warped_keypoints = (warp_keypoints(m_warped_keypoints/256-1, np.linalg.inv(real_H))+1)*256
     vis_warped = np.all((true_warped_keypoints >= 0) & (true_warped_keypoints <= (np.array(shape)-1)), axis=-1)
     norm1 = np.linalg.norm(true_warped_keypoints - m_keypoints, axis=-1)
 
@@ -145,7 +145,7 @@ def compute_matching_score(data, keep_k_points=1000):
     matches_idx = np.array([m.trainIdx for m in matches])
     m_keypoints = keypoints[matches_idx, :]
 
-    true_keypoints = warp_keypoints(m_keypoints, real_H)
+    true_keypoints = (warp_keypoints(m_keypoints/256-1, real_H)+1)*256
     vis = np.all((true_keypoints >= 0) & (true_keypoints <= (np.array(shape)-1)), axis=-1)
     norm2 = np.linalg.norm(true_keypoints - m_warped_keypoints, axis=-1)
 
@@ -203,22 +203,28 @@ def compute_homography(data, keep_k_points=1000):
     keypoints, desc = keep_shared_points(keypoints, desc, real_H, shape, keep_k_points)
     warped_keypoints, warped_desc = keep_shared_points(warped_keypoints, warped_desc, np.linalg.inv(real_H), shape,
                                                        keep_k_points)
+    cart_keypoints = (pol_2_cart(torch.tensor(keypoints/256-1).unsqueeze(0), 60, 0.1, 5.0).squeeze(
+        0).numpy()+1)*256
 
-    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
-    matches = bf.match(desc, warped_desc)
-    matches_idx = np.array([m.queryIdx for m in matches])
+    cart_warped_keypoints = (pol_2_cart(torch.tensor(warped_keypoints/256-1).unsqueeze(0), 60, 0.1, 5.0).squeeze(
+        0).numpy()+1)*256
+
     try:
-        m_keypoints = keypoints[matches_idx, :]
+        bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+        matches = bf.match(desc, warped_desc)
+        matches_idx = np.array([m.queryIdx for m in matches])
+        m_keypoints = cart_keypoints[matches_idx, :]
     except:
-        print(matches_idx)
         return 0,0,0
     matches_idx = np.array([m.trainIdx for m in matches])
-    m_warped_keypoints = warped_keypoints[matches_idx, :]
+    m_warped_keypoints = cart_warped_keypoints[matches_idx, :]
 
     if m_keypoints.shape[0] <4 or m_warped_keypoints.shape[0] <4:
         return 0,0,0
 
     # Estimate the homography between the matches using RANSAC
+
+
     H, _ = cv2.findHomography(m_keypoints, m_warped_keypoints, cv2.RANSAC, 3, maxIters=5000)
 
     if H is None:

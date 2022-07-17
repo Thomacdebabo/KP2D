@@ -12,12 +12,13 @@ from torch.utils.data import ConcatDataset, DataLoader
 from tqdm import tqdm
 
 from kp2d.datasets.patches_dataset import PatchesDataset
+from kp2d.datasets.sonarsim import SonarSimLoader
 from kp2d.evaluation.evaluate import evaluate_keypoint_net
 from kp2d.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2d.utils.config import parse_train_file
 from kp2d.utils.logging import SummaryWriter, printcolor
 from train_keypoint_net_utils import (_set_seeds, sample_to_cuda,
-                                      setup_datasets_and_dataloaders)
+                                      setup_datasets_and_dataloaders, setup_datasets_and_dataloaders_eval, image_transforms)
 
 from kp2d.datasets.noise_model import NoiseUtility
 #torch.autograd.set_detect_anomaly(True)
@@ -131,7 +132,7 @@ def main(file):
 
 
     # Initial evaluation
-    #evaluation(config, 0, model, summary,noise_util)
+    evaluation(config, 0, model, summary,noise_util)
     # Train
     for epoch in range(config.arch.epochs):
         # train for one epoch (only log if eval to have aligned steps...)
@@ -155,15 +156,18 @@ def evaluation(config, completed_epoch, model, summary,noise_util):
     eval_shape = config.datasets.augmentation.image_shape[::-1]
     eval_params = [{'res': eval_shape, 'top_k': 300}]
     for params in eval_params:
-        hp_dataset = PatchesDataset(root_dir=config.datasets.val.path, use_color=use_color, output_shape=params['res'], type='a')
+        # hp_dataset = SonarSimLoader(root_dir=config.datasets.val.path, noise_util=noise_util,
+        #                             data_transform=image_transforms(noise_util, config.datasets)['train'])
+        #
+        # data_loader = DataLoader(hp_dataset,
+        #                         batch_size=1,
+        #                         pin_memory=False,
+        #                         shuffle=False,
+        #                         num_workers=8,
+        #                         worker_init_fn=None,
+        #                         sampler=None)
+        hp_dataset, data_loader = setup_datasets_and_dataloaders_eval(config.datasets, noise_util)
 
-        data_loader = DataLoader(hp_dataset,
-                                batch_size=1,
-                                pin_memory=False,
-                                shuffle=False,
-                                num_workers=8,
-                                worker_init_fn=None,
-                                sampler=None)
         print('Loaded {} image pairs '.format(len(data_loader)))
 
         printcolor('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']))

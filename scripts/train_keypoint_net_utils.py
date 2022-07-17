@@ -106,3 +106,28 @@ def setup_datasets_and_dataloaders(config,noise_util):
                               sampler=sampler,
                               drop_last=True)
     return train_dataset, train_loader
+def setup_datasets_and_dataloaders_eval(config,noise_util):
+    """Prepare datasets for training, validation and test."""
+    def _worker_init_fn(worker_id):
+        """Worker init fn to fix the seed of the workers"""
+        _set_seeds(42 + worker_id)
+
+    data_transforms = image_transforms(noise_util,config)
+    train_dataset = SonarSimLoader(config.val.path, noise_util,data_transform=data_transforms['train'])
+    # Concatenate dataset to produce a larger one
+    if config.train.repeat > 1:
+        train_dataset = ConcatDataset([train_dataset for _ in range(config.train.repeat)])
+
+    # Create loaders
+
+    sampler = None
+
+    train_loader = DataLoader(train_dataset,
+                              batch_size=1,
+                              pin_memory=False, # pin memory on seems to create an error
+                              shuffle=True,
+                              num_workers=config.train.num_workers,
+                              worker_init_fn=_worker_init_fn,
+                              sampler=sampler,
+                              drop_last=True)
+    return train_dataset, train_loader
