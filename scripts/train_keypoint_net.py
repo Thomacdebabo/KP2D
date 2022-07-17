@@ -83,7 +83,7 @@ def main(file):
                               blur=config.datasets.augmentation.blur,
                               add_speckle_noise=config.datasets.augmentation.add_speckle_noise,
                               normalize=config.datasets.augmentation.normalize,
-                              device=config.device)
+                              device="cpu") #unfortunately noise model does not work with cuda due to cuda reinitialization issue
     printcolor('-'*25 + 'SINGLE GPU ' + '-'*25, 'cyan')
     
     if config.arch.seed is not None:
