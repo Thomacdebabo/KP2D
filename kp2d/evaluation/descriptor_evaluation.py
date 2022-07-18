@@ -198,16 +198,17 @@ def compute_homography(data, keep_k_points=1000):
 
     desc = data['desc']
     warped_desc = data['warped_desc']
-    
-    # Keeps only the points shared between the two views
-    keypoints, desc = keep_shared_points(keypoints, desc, real_H, shape, keep_k_points)
-    warped_keypoints, warped_desc = keep_shared_points(warped_keypoints, warped_desc, np.linalg.inv(real_H), shape,
-                                                       keep_k_points)
+
     cart_keypoints = (pol_2_cart(torch.tensor(keypoints/256-1).unsqueeze(0), 60, 0.1, 5.0).squeeze(
         0).numpy()+1)*256
 
     cart_warped_keypoints = (pol_2_cart(torch.tensor(warped_keypoints/256-1).unsqueeze(0), 60, 0.1, 5.0).squeeze(
         0).numpy()+1)*256
+    # Keeps only the points shared between the two views
+    cart_keypoints, desc = keep_shared_points(cart_keypoints, desc, real_H, shape, keep_k_points)
+    cart_warped_keypoints, warped_desc = keep_shared_points(cart_warped_keypoints, warped_desc, np.linalg.inv(real_H), shape,
+                                                       keep_k_points)
+
 
     try:
         bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
@@ -243,6 +244,6 @@ def compute_homography(data, keep_k_points=1000):
     mean_dist = np.mean(np.linalg.norm(real_warped_corners - warped_corners, axis=1))
     correctness1 = float(mean_dist <= 1)
     correctness3 = float(mean_dist <= 3)
-    correctness5 = float(mean_dist <= 5)
+    correctness5 = float(mean_dist)
 
     return correctness1, correctness3, correctness5

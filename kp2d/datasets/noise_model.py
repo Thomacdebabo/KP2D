@@ -258,7 +258,7 @@ def create_artifact(shape, device, artifact_amp, artifact_width, super_resolutio
 
     noise = torch.clip((torch.rand(shape).to(device) - 0.7) * attenuation[:, None].to(device), 0,
                        255)
-    mid = int(shape[3] * super_resolution / 2)
+    mid = int(shape[3] / 2)
 
     artifact[:, :, :, mid -artifact_width:mid + artifact_width] = noise[:, :, :,mid - artifact_width:mid + artifact_width]
     return artifact

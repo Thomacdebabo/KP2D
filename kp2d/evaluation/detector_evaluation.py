@@ -74,7 +74,7 @@ def compute_repeatability(data, keep_k_points=300, distance_thresh=3):
     warped_keypoints = keep_true_keypoints(warped_keypoints, np.linalg.inv(H), shape)
 
     # Warp the original keypoints with the true homography
-    true_warped_keypoints = warp_keypoints(keypoints, H)
+    true_warped_keypoints = (warp_keypoints(keypoints/256-1, H)+1)*256
     true_warped_keypoints = np.stack([true_warped_keypoints[:, 0], true_warped_keypoints[:, 1], data['prob'][:, 2]], axis=-1)
     true_warped_keypoints = filter_keypoints(true_warped_keypoints, shape)
 
