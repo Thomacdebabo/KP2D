@@ -6,7 +6,7 @@
 #    + cross-border keypoints
 #    + descriptor loss
 arch:
-    epochs: 1
+    epochs: 50
 model:
     params:
         use_color: True
