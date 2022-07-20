@@ -45,6 +45,6 @@ datasets:
         num_workers: 16
         batch_size: 4
     val:
-        path: "../Dataset/HPatches/hpatches-sequences-release/"
+        path: "../../../scratch/rueeggth/dataset/SonarDataSets/SimEval"
 
 
