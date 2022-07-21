@@ -200,7 +200,7 @@ class NoiseUtility():
         img = sample['image']
         img_aug = sample['image_aug']
         amp = self.amp*(0.3+torch.rand(1)).item()
-        artifact_amp = self.artifact_amp*(0.3+torch.rand(1)).item()
+        artifact_amp = self.artifact_amp*torch.rand(1).item()
         sample['image'] = self.filter(img, amp=amp,artifact_amp=artifact_amp).to(img.dtype)
         sample['image_aug'] = self.filter(img_aug, amp=amp, artifact_amp=artifact_amp).to(img_aug.dtype)
         return sample
@@ -253,7 +253,7 @@ def gradient_curve(x,a=0.25, x0=0.5):
 
 def create_artifact(shape, device, artifact_amp, artifact_width, super_resolution):
     artifact = torch.zeros(shape).to(device)
-    attenuation = torch.linspace(artifact_amp  * 0.1, artifact_amp, shape[3]) * (
+    attenuation = torch.linspace(artifact_amp  * torch.rand(1).item()*0.5, artifact_amp, shape[3]) * (
                 torch.rand(shape[3]))
 
     noise = torch.clip((torch.ones(shape).to(device)) * attenuation[:, None].to(device), 0,
