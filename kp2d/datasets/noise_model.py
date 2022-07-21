@@ -200,9 +200,9 @@ class NoiseUtility():
         img = sample['image']
         img_aug = sample['image_aug']
         amp = self.amp*(0.3+torch.rand(1)).item()
-        artifact_amp = self.artifact_amp*(0.3+torch.rand(1)).item()
-        sample['image'] = self.filter(img, amp=amp, artifact_amp=artifact_amp).to(img.dtype)
-        sample['image_aug'] = self.filter(img_aug, amp=amp, artifact_amp=artifact_amp).to(img_aug.dtype)
+        #artifact_amp = self.artifact_amp*(0.3+torch.rand(1)).item()
+        sample['image'] = self.filter(img, amp=amp).to(img.dtype)
+        sample['image_aug'] = self.filter(img_aug, amp=amp).to(img_aug.dtype)
         return sample
 
     def cart_2_pol_sample(self, sample):
