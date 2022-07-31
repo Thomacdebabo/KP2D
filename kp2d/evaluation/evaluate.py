@@ -31,7 +31,7 @@ def evaluate_keypoint_net(data_loader, keypoint_net,noise_util, output_shape=(32
     keypoint_net.eval()
     keypoint_net.training = False
 
-    conf_threshold = 0.0
+    conf_threshold = 0.9
     localization_err, repeatability = [], []
     correctness1, correctness3, correctness5, MScore = [], [], [], []
 
@@ -76,7 +76,7 @@ def evaluate_keypoint_net(data_loader, keypoint_net,noise_util, output_shape=(32
             localization_err.append(loc_err)
 
             # Compute correctness
-            c1, c2, c3 = compute_homography(data, keep_k_points=top_k)
+            c1, c2, c3 = compute_homography(data,noise_util, keep_k_points=top_k)
             correctness1.append(c1)
             correctness3.append(c2)
             correctness5.append(c3)
@@ -89,7 +89,7 @@ def evaluate_keypoint_net(data_loader, keypoint_net,noise_util, output_shape=(32
     return np.mean(repeatability), np.mean(localization_err), \
            np.mean(correctness1), np.mean(correctness3), np.mean(correctness5), np.mean(MScore)
 
-def sonar_evaluate_keypoint_net(data_loader, keypoint_net, noise_util, output_shape=(320, 240), top_k=300,
+def sonar_evaluate_keypoint_net(data_loader, keypoint_net, noise_util, output_shape=(320, 240), top_k=100,
                           use_color=True):
     """Keypoint net evaluation script.
 

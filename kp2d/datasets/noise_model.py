@@ -68,7 +68,7 @@ def to_numpy(img):
     Quick function to convert RGB torch array to numpy array in PIL format (to use in CV2 use permute).
     WARNING: be careful PIL and CV2 have use different orders of dimensions
     :param img: torch array [1,1,H,W] on specified device
-    :return: numpy array [H,W,3]
+    :return: numpy array [3,H,W]
     """
     return (img.permute(0,2,3,1).squeeze(0).cpu().numpy()).astype(np.uint8)
 
@@ -320,6 +320,7 @@ class NoiseUtility():
         return sample
 
     # torch implementations of cartesian/polar conversions
+
     def pol_2_cart_torch(self, img):
         return torch.nn.functional.grid_sample(img, self.map_inv, mode='bilinear', padding_mode='zeros',
                                                 align_corners=True)

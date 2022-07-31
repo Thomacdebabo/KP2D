@@ -11,6 +11,11 @@ import numpy as np
 from kp2d.utils.keypoints import warp_keypoints
 from kp2d.datasets.noise_model import pol_2_cart,cart_2_pol
 import torch
+
+from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
+                                         spatial_augment_sample,
+                                         to_tensor_sample,to_tensor_sonar_sample)
+from kp2d.utils.keypoints import draw_keypoints
 def select_k_best(points, descriptors, k):
     """ Select the k most probable points (and strip their probability).
     points has shape (num_points, 3) where the last coordinate is the probability.
@@ -33,6 +38,7 @@ def select_k_best(points, descriptors, k):
     """
     sorted_prob = points[points[:, 2].argsort(), :2]
     sorted_desc = descriptors[points[:, 2].argsort(), :]
+
     start = min(k, points.shape[0])
     selected_points = sorted_prob[-start:, :]
     selected_descriptors = sorted_desc[-start:, :]
@@ -109,6 +115,8 @@ def compute_matching_score(data, keep_k_points=1000):
     shape = data['image_shape']
     real_H = data['homography']
 
+    f = [shape[0] / 2, shape[1] / 2]
+    a = [1,1]
     # Filter out predictions
     keypoints = data['prob']
     warped_keypoints = data['warped_prob']
@@ -126,12 +134,15 @@ def compute_matching_score(data, keep_k_points=1000):
     bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
 
     matches = bf.match(desc, warped_desc)
+    if not matches:
+        return 0
     matches_idx = np.array([m.queryIdx for m in matches])
+
     m_keypoints = keypoints[matches_idx, :]
     matches_idx = np.array([m.trainIdx for m in matches])
     m_warped_keypoints = warped_keypoints[matches_idx, :]
 
-    true_warped_keypoints = (warp_keypoints(m_warped_keypoints/256-1, np.linalg.inv(real_H))+1)*256
+    true_warped_keypoints = (warp_keypoints(m_warped_keypoints/f-a, np.linalg.inv(real_H))+a)*f
     vis_warped = np.all((true_warped_keypoints >= 0) & (true_warped_keypoints <= (np.array(shape)-1)), axis=-1)
     norm1 = np.linalg.norm(true_warped_keypoints - m_keypoints, axis=-1)
 
@@ -157,7 +168,7 @@ def compute_matching_score(data, keep_k_points=1000):
 
     return ms
 
-def compute_homography(data, keep_k_points=1000):
+def compute_homography(data, noise_util, keep_k_points=1000):
     """
     Compute the homography between 2 sets of Keypoints and descriptors inside data. 
     Use the homography to compute the correctness metrics (1,3,5).
@@ -190,24 +201,27 @@ def compute_homography(data, keep_k_points=1000):
     correctness5: float
         correctness5 metric.
     """
-    shape = data['image_shape']
+    shape = data['image'].shape[1:]
     real_H = data['homography']
 
+    f = [shape[0]/2, shape[1]/2]
+    a = [1,1]
     keypoints = data['prob']
     warped_keypoints = data['warped_prob']
-
     desc = data['desc']
     warped_desc = data['warped_desc']
 
-    cart_keypoints = (pol_2_cart(torch.tensor(keypoints/256-1).unsqueeze(0), 60, 0.1, 5.0).squeeze(
-        0).numpy()+1)*256
-
-    cart_warped_keypoints = (pol_2_cart(torch.tensor(warped_keypoints/256-1).unsqueeze(0), 60, 0.1, 5.0).squeeze(
-        0).numpy()+1)*256
     # Keeps only the points shared between the two views
-    cart_keypoints, desc = keep_shared_points(cart_keypoints, desc, real_H, shape, keep_k_points)
-    cart_warped_keypoints, warped_desc = keep_shared_points(cart_warped_keypoints, warped_desc, np.linalg.inv(real_H), shape,
-                                                       keep_k_points)
+    cart_keypoints, desc = keep_shared_points(keypoints.copy(), desc, real_H, shape, keep_k_points)
+    cart_warped_keypoints, warped_desc = keep_shared_points(warped_keypoints.copy(), warped_desc, np.linalg.inv(real_H), shape,
+                                                      keep_k_points)
+
+    cart_keypoints = (pol_2_cart(torch.tensor(cart_keypoints/f-a).unsqueeze(0), 60, 0.1, 5.0).squeeze(
+        0).numpy()+a)*f
+
+    cart_warped_keypoints = (pol_2_cart(torch.tensor(cart_warped_keypoints/f-a).unsqueeze(0), 60, 0.1, 5.0).squeeze(
+        0).numpy()+a)*f
+
 
 
     try:
@@ -219,23 +233,26 @@ def compute_homography(data, keep_k_points=1000):
         return 0,0,0
     matches_idx = np.array([m.trainIdx for m in matches])
     m_warped_keypoints = cart_warped_keypoints[matches_idx, :]
-
     if m_keypoints.shape[0] <4 or m_warped_keypoints.shape[0] <4:
         return 0,0,0
 
     # Estimate the homography between the matches using RANSAC
 
 
-    H, _ = cv2.findHomography(m_keypoints, m_warped_keypoints, cv2.RANSAC, 3, maxIters=5000)
+    H, _ = cv2.findHomography(m_keypoints, m_warped_keypoints, cv2.RANSAC, 2, maxIters=10000)
 
     if H is None:
         return 0, 0, 0
 
     # Compute correctness
-    corners = np.array([[0, 0, 1],
+    # corners = np.array([[0, 0, 1],
+    #                     [0, shape[1] - 1, 1],
+    #                     [shape[0] - 1, 0, 1],
+    #                     [shape[0] - 1, shape[1] - 1, 1]])
+    corners = np.array([[shape[0]/2, 0, 1],
                         [0, shape[1] - 1, 1],
-                        [shape[0] - 1, 0, 1],
-                        [shape[0] - 1, shape[1] - 1, 1]])
+                        [shape[0] - 1, shape[1] - 1, 1],
+                        [shape[0]/2, shape[1]-1, 1]])
     real_warped_corners = np.dot(corners, np.transpose(real_H))
     real_warped_corners = real_warped_corners[:, :2] / real_warped_corners[:, 2:]
     warped_corners = np.dot(corners, np.transpose(H))
@@ -246,4 +263,23 @@ def compute_homography(data, keep_k_points=1000):
     correctness3 = float(mean_dist <= 3)
     correctness5 = float(mean_dist)
 
+    # img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image'].copy()/255).unsqueeze(0))
+    # img_debug = np.ascontiguousarray((img_debug*255).squeeze(0).numpy().astype(np.uint8).transpose(1,2,0))
+    # img_debug = draw_kps(img_debug, corners, c = (0,0,255))
+    # img_debug = draw_kps(img_debug, real_warped_corners, c = (255,0,255))
+    # #img_debug = draw_kps(img_debug, m_warped_keypoints, c = (255,0,0))
+    # img_debug = draw_kps(img_debug, m_keypoints, c = (255,0,0))
+    # img_debug = draw_kps(img_debug, warped_corners, c = (0,255,0))
+    # print("real")
+    # print(real_warped_corners)
+    # print("computed")
+    # print(warped_corners)
+    # cv2.imshow("hi", img_debug)
+    # cv2.waitKey(1)
     return correctness1, correctness3, correctness5
+
+def draw_kps(img_debug, corners, c = (0, 0, 255)):
+    for pt in corners[:,:2].astype(np.int32):
+        x, y = int(pt[0]), int(pt[1])
+        img_debug = cv2.circle(img_debug, (x,y), 2,  c, -1)
+    return img_debug
