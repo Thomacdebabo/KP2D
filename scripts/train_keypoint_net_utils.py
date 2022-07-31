@@ -14,6 +14,7 @@ from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
 from kp2d.datasets.coco import COCOLoader
 from kp2d.datasets.sonarsim import SonarSimLoader
 
+#TODO: remove
 def sample_to_cuda(data):
     if isinstance(data, str):
         return data
