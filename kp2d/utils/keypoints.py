@@ -46,7 +46,7 @@ def warp_keypoints(keypoints, H):
     homogeneous_points = np.concatenate([keypoints, np.ones((num_points, 1))], axis=1)
     warped_points = np.dot(homogeneous_points, np.transpose(H))
     warped_points = warped_points[:, :2] / warped_points[:, 2:]
-    warped_points = cart_2_pol(torch.tensor(warped_points).unsqueeze(0), 60, 0.1, 5.0).squeeze(0).numpy()
+    # warped_points = cart_2_pol(torch.tensor(warped_points).unsqueeze(0), 60, 0.1, 5.0).squeeze(0).numpy()
     return warped_points
 
 
