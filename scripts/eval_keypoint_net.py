@@ -58,23 +58,25 @@ def main():
                  fov=60,
                  r_min=0.1,
                  r_max=5.0,
-                super_resolution=1,
-                              normalize=True,
-                              preprocessing_gradient=True,
-                              add_row_noise=True,
-                              add_artifact=True,
-                              add_sparkle_noise=False,
-                              add_normal_noise= False,
-                              add_speckle_noise=False
-                              )
+                 super_resolution=1,
+                 normalize=True,
+                 preprocessing_gradient=True,
+                 add_row_noise=True,
+                 add_artifact=False,
+                 add_sparkle_noise=True,
+                 add_normal_noise= False,
+                 add_speckle_noise=True,
+                 blur=True,
+                 patch_ratio=0.7,
+                 scaling_amplitude=0.0)
     # Check model type
     if 'keypoint_net_type' in checkpoint['config']['model']['params']:
-        net_type = checkpoint['config']['model']['params']
+        net_type = checkpoint['config']['model']['params']['keypoint_net_type']
     else:
-        net_type = KeypointNet # default when no type is specified
+        net_type = 'KeypointNet' # default when no type is specified
 
     # Create and load keypoint net
-    if net_type is KeypointNet:
+    if net_type == 'KeypointNet':
         keypoint_net = KeypointNet(use_color=model_args['use_color'],
                                 do_upsample=model_args['do_upsample'],
                                 do_cross=model_args['do_cross'])
@@ -87,7 +89,7 @@ def main():
     print('Loaded KeypointNet from {}'.format(args.pretrained_model))
     print('KeypointNet params {}'.format(model_args))
 
-    eval_params = [{'res': (512, 512), 'top_k': 1024, }]
+    eval_params = [{'res': (512, 512), 'top_k': 700, }]
 
     for params in eval_params:
         data_transforms = image_transforms(noise_util)
