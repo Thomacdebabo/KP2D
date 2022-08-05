@@ -62,13 +62,13 @@ def main():
                  normalize=True,
                  preprocessing_gradient=True,
                  add_row_noise=True,
-                 add_artifact=False,
+                 add_artifact=True,
                  add_sparkle_noise=True,
                  add_normal_noise= False,
                  add_speckle_noise=True,
-                 blur=True,
-                 patch_ratio=0.7,
-                 scaling_amplitude=0.0)
+                 blur=False,
+                 patch_ratio=0.8,
+                 scaling_amplitude=0.2)
     # Check model type
     if 'keypoint_net_type' in checkpoint['config']['model']['params']:
         net_type = checkpoint['config']['model']['params']['keypoint_net_type']
@@ -89,7 +89,7 @@ def main():
     print('Loaded KeypointNet from {}'.format(args.pretrained_model))
     print('KeypointNet params {}'.format(model_args))
 
-    eval_params = [{'res': (512, 512), 'top_k': 700, }]
+    eval_params = [{'res': (512, 512), 'top_k': 1500, }]
 
     for params in eval_params:
         data_transforms = image_transforms(noise_util)

@@ -414,6 +414,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
             self.vis['img_ori'] = np.clip(vis_ori, 0, 255) / 255.
             self.vis['heatmap'] = np.clip(heatmap * 255, 0, 255) / 255.
             self.vis['aug'] = np.clip(vis_aug, 0, 255) / 255.
+
             cv2.imshow('org', self.vis['img_ori'])
             cv2.imshow('heatmap', self.vis['heatmap'])
             cv2.imshow('aug', self.vis['aug'])
