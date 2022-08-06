@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from kp2d.datasets.sonarsim import SonarSimLoader
 from kp2d.datasets.patches_dataset import PatchesDataset
-from kp2d.evaluation.evaluate import evaluate_keypoint_net,evaluate_keypoint_net_sonar
+from kp2d.evaluation.evaluate import evaluate_keypoint_net
 from kp2d.networks.keypoint_net import KeypointNet
 from kp2d.networks.keypoint_resnet import KeypointResnet
 from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
@@ -63,11 +63,11 @@ def main():
                  preprocessing_gradient=True,
                  add_row_noise=True,
                  add_artifact=True,
-                 add_sparkle_noise=False,
+                 add_sparkle_noise=True,
                  add_normal_noise= False,
-                 add_speckle_noise=False,
-                 blur=True,
-                 patch_ratio=0.9,
+                 add_speckle_noise=True,
+                 blur=False,
+                 patch_ratio=0.8,
                  scaling_amplitude=0.2)
     # Check model type
     if 'keypoint_net_type' in checkpoint['config']['model']['params']:
@@ -103,7 +103,7 @@ def main():
                                  sampler=None)
 
         print(colored('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']),'green'))
-        rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net_sonar(
+        rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net(
             data_loader,
             keypoint_net,
             noise_util=noise_util,
