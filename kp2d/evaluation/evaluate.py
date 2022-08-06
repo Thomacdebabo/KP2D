@@ -114,7 +114,7 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
 
     conf_threshold = 0.0
     localization_err, repeatability = [], []
-    correctness1, correctness3, correctness5, MScore = [], [], [], []
+    correctness1, correctness5, correctness10, useful_points, mean_distance, MScore = [], [], [], [], [], []
 
     with torch.no_grad():
         for i, sample in tqdm(enumerate(data_loader), desc="evaluate_keypoint_net"):
@@ -159,17 +159,19 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
             localization_err.append(loc_err)
 
             # Compute correctness
-            c1, c2, c3 = compute_homography_sonar(data,noise_util, keep_k_points=top_k) #TODO remove noise util once debugging is done
+            c1, c5, c10, up, md = compute_homography_sonar(data,noise_util, keep_k_points=top_k) #TODO remove noise util once debugging is done
             correctness1.append(c1)
-            correctness3.append(c2)
-            correctness5.append(c3)
+            correctness5.append(c5)
+            correctness10.append(c10)
+            useful_points.append(up)
+            mean_distance.append(md)
 
             # Compute matching score
             mscore = compute_matching_score_sonar(data, keep_k_points=top_k)
             MScore.append(mscore)
 
     return np.mean(repeatability), np.mean(localization_err), \
-           np.mean(correctness1), np.mean(correctness3), np.mean(correctness5), np.mean(MScore)
+           np.mean(correctness1), np.mean(correctness5), np.mean(correctness10), np.mean(MScore), np.mean(useful_points), np.mean(mean_distance)
 
 
 def evaluate_orb_sonar(data_loader, detector, noise_util, output_shape=(320, 240), top_k=300, use_color=True):

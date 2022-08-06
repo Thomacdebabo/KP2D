@@ -80,8 +80,10 @@ def main():
         keypoint_net = KeypointNet(use_color=model_args['use_color'],
                                 do_upsample=model_args['do_upsample'],
                                 do_cross=model_args['do_cross'])
-    else:
+    elif net_type == 'KeypointResnet':
         keypoint_net = KeypointResnet()
+    else:
+        raise KeyError ("net_type not recognized: " + str(net_type))
 
     keypoint_net.load_state_dict(checkpoint['state_dict'])
     keypoint_net = keypoint_net.cuda()
@@ -103,7 +105,7 @@ def main():
                                  sampler=None)
 
         print(colored('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']),'green'))
-        rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net_sonar(
+        rep, loc, c1, c5, c10, mscore, up, md = evaluate_keypoint_net_sonar(
             data_loader,
             keypoint_net,
             noise_util=noise_util,
@@ -114,9 +116,11 @@ def main():
         print('Repeatability {0:.3f}'.format(rep))
         print('Localization Error {0:.3f}'.format(loc))
         print('Correctness d1 {:.3f}'.format(c1))
-        print('Correctness d3 {:.3f}'.format(c3))
         print('Correctness d5 {:.3f}'.format(c5))
+        print('Correctness d10 {:.3f}'.format(c10))
         print('MScore {:.3f}'.format(mscore))
+        print('Usefuf points ratio  {:.3f}'.format(up))
+        print('Mean distance (debug) {:.3f}'.format(md))
 
 if __name__ == '__main__':
     main()

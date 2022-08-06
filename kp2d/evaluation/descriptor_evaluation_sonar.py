@@ -228,7 +228,7 @@ def compute_matching_score_sonar(data, keep_k_points=1000):
     ms = (score1 + score2) / 2
     return ms
 
-def compute_homography_sonar(data, noise_util, keep_k_points=1000):
+def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False):
     """
     Compute the homography between 2 sets of Keypoints and descriptors inside data. 
     Use the homography to compute the correctness metrics (1,3,5).
@@ -311,17 +311,13 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000):
         return 0,0,0
 
     # Estimate the homography between the matches using RANSAC
-    H, mask = cv2.findHomography((m_warped_keypoints+a[:2])*f[:2], (m_keypoints+a[:2])*f[:2], cv2.RANSAC, 5.0)
+    H, h_mask = cv2.findHomography((m_warped_keypoints+a[:2])*f[:2], (m_keypoints+a[:2])*f[:2], cv2.RANSAC, 5.0)
 
 
     if H is None:
         return 0, 0, 0
 
-    # Compute correctness
-    # corners = np.array([[0, 0, 1],
-    #                     [0, shape[1] - 1, 1],
-    #                     [shape[0] - 1, 0, 1],
-    #                     [shape[0] - 1, shape[1] - 1, 1]])
+
     corners = np.array([[shape[0]/2, 0, 1],
                         [0, shape[1] - 1, 1],
                         [shape[0] - 1, shape[1] - 1, 1],
@@ -353,59 +349,58 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000):
     warped_corners = warped_corners
     
     mean_dist = np.mean(np.linalg.norm(real_warped_corners - warped_corners, axis=1))
-    correctness1 = float(mean_dist <= 10)
-    correctness3 = float(mask.sum()/matches_idx.__len__())
-    correctness5 = float(mean_dist)
+    correctness1 = float(mean_dist <= 1)
+    correctness5 = float(mean_dist <= 5)
+    correctness10 = float(mean_dist <= 10)
+    useful_points_ratio = float(h_mask.sum()/matches_idx.__len__())
+    mean_distance = float(mean_dist)
 
     #DEBUG PICS
-    img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image'].copy()/255).unsqueeze(0))
-    img_debug = np.ascontiguousarray((img_debug*255).squeeze(0).numpy().astype(np.uint8).transpose(1,2,0))
+    if debug:
+        img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image'].copy()/255).unsqueeze(0))
+        img_debug = np.ascontiguousarray((img_debug*255).squeeze(0).numpy().astype(np.uint8).transpose(1,2,0))
 
-    img_debug = draw_kps(img_debug, (corners+a)*f, c = (0,0,255))
-    img_debug = draw_kps(img_debug, real_warped_corners, c = (255,0,255))
-    #img_debug = draw_kps(img_debug, m_warped_keypoints, c = (255,0,0))
-    img_debug = draw_kps(img_debug, (m_keypoints+ a[:2])* f[:2], c = (0,255,0))
-    img_debug = draw_kps(img_debug, warped_keypoints, c = (255,0,0))
+        img_debug = draw_kps(img_debug, (corners+a)*f, c = (0,0,255))
+        img_debug = draw_kps(img_debug, real_warped_corners, c = (255,0,255))
+        #img_debug = draw_kps(img_debug, m_warped_keypoints, c = (255,0,0))
+        img_debug = draw_kps(img_debug, (m_keypoints+ a[:2])* f[:2], c = (0,255,0))
+        img_debug = draw_kps(img_debug, warped_keypoints, c = (255,0,0))
 
-    cv2.imshow("hi", img_debug)
+        cv2.imshow("hi", img_debug)
 
-    img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image'].copy() / 255).unsqueeze(0))
-    img_debug = np.ascontiguousarray((img_debug * 255).squeeze(0).numpy().astype(np.uint8).transpose(1, 2, 0))
-    query_image = img_debug.copy()
+        img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image'].copy() / 255).unsqueeze(0))
+        img_debug = np.ascontiguousarray((img_debug * 255).squeeze(0).numpy().astype(np.uint8).transpose(1, 2, 0))
+        query_image = img_debug.copy()
 
-    img_debug = draw_kps(img_debug, warped_corners , c=(0, 0, 255))
-    img_debug = draw_kps(img_debug, real_warped_corners, c=(255, 0, 255))
-    # img_debug = draw_kps(img_debug, m_warped_keypoints, c = (255,0,0))
-    img_debug = draw_kps(img_debug, (m_keypoints + a[:2]) * f[:2], c=(0, 255, 0))
-    img_debug = draw_kps(img_debug, estimated_warped_keypoints, c=(255, 0, 0))
+        img_debug = draw_kps(img_debug, warped_corners , c=(0, 0, 255))
+        img_debug = draw_kps(img_debug, real_warped_corners, c=(255, 0, 255))
+        # img_debug = draw_kps(img_debug, m_warped_keypoints, c = (255,0,0))
+        img_debug = draw_kps(img_debug, (m_keypoints + a[:2]) * f[:2], c=(0, 255, 0))
+        img_debug = draw_kps(img_debug, estimated_warped_keypoints, c=(255, 0, 0))
 
-    cv2.imshow("hi3", img_debug)
+        cv2.imshow("hi3", img_debug)
 
-    img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image_aug'].copy()/255).unsqueeze(0))
-    img_debug = np.ascontiguousarray((img_debug*255).squeeze(0).numpy().astype(np.uint8).transpose(1,2,0))
-    trainImage = img_debug.copy()
+        img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image_aug'].copy()/255).unsqueeze(0))
+        img_debug = np.ascontiguousarray((img_debug*255).squeeze(0).numpy().astype(np.uint8).transpose(1,2,0))
+        trainImage = img_debug.copy()
 
-    img_debug = draw_kps(img_debug, (m_warped_keypoints+ a[:2])* f[:2], c = (0,0,255))
-    #img_debug = draw_kps(img_debug, real_warped_corners, c = (255,0,255))
-    img_debug = draw_kps(img_debug, m_warped_keypoints, c = (255,0,0))
-    #img_debug = draw_kps(img_debug, m_keypoints, c = (255,0,0))
-    img_debug = draw_kps(img_debug, real_warped_keypoints, c = (0,255,0))
+        img_debug = draw_kps(img_debug, (m_warped_keypoints+ a[:2])* f[:2], c = (0,0,255))
+        #img_debug = draw_kps(img_debug, real_warped_corners, c = (255,0,255))
+        img_debug = draw_kps(img_debug, m_warped_keypoints, c = (255,0,0))
+        #img_debug = draw_kps(img_debug, m_keypoints, c = (255,0,0))
+        img_debug = draw_kps(img_debug, real_warped_keypoints, c = (0,255,0))
 
-    cv2.imshow("hi2", img_debug)
+        cv2.imshow("hi2", img_debug)
 
 
-    cv2.waitKey(1)
-    try:
-        visualizeMatches(trainImage, (cart_warped_keypoints + a[:2]) * f[:2], query_image, (cart_keypoints + a[:2]) * f[:2], matches)
-    except:
-        print("whopsie")
-    #
-    # print("real")
-    # print(real_warped_corners)
-    # print("computed")
-    # print(warped_corners)
+        cv2.waitKey(1)
+        try:
+            visualizeMatches(trainImage, (cart_warped_keypoints + a[:2]) * f[:2], query_image, (cart_keypoints + a[:2]) * f[:2], matches)
+        except:
+            print("whopsie")
+        #
 
-    return correctness1, correctness3, correctness5
+    return correctness1, correctness5, correctness10, useful_points_ratio, mean_distance
 
 
 def draw_kps(img_debug, corners, c = (0, 0, 255)):
