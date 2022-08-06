@@ -18,7 +18,7 @@ from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
 from kp2d.utils.keypoints import draw_keypoints
 
 
-#PAsted for debug
+#Pasted for debug
 import cv2
 from matplotlib import pyplot as plt
 import numpy as np

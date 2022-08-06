@@ -2,21 +2,12 @@
 # Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2d/v4.pth --input_dir /data/datasets/kp2d/HPatches/
 
 import argparse
-import os
-import pickle
-import random
-import subprocess
 
-import cv2
-import numpy as np
 import torch
-from PIL import Image
 from termcolor import colored
-from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm
+from torch.utils.data import DataLoader
 
 from kp2d.datasets.sonarsim import SonarSimLoader
-from kp2d.datasets.patches_dataset import PatchesDataset
 from kp2d.evaluation.evaluate import evaluate_keypoint_net,evaluate_keypoint_net_sonar
 from kp2d.networks.keypoint_net import KeypointNet
 from kp2d.networks.keypoint_resnet import KeypointResnet
@@ -119,7 +110,7 @@ def main():
         print('Correctness d5 {:.3f}'.format(c5))
         print('Correctness d10 {:.3f}'.format(c10))
         print('MScore {:.3f}'.format(mscore))
-        print('Usefuf points ratio  {:.3f}'.format(up))
+        print('Useful points ratio  {:.3f}'.format(up))
         print('Mean distance (debug) {:.3f}'.format(md))
 
 if __name__ == '__main__':

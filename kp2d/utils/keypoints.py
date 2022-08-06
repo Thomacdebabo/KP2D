@@ -2,9 +2,8 @@
 
 import cv2
 import numpy as np
-import torch
-from kp2d.datasets.noise_model import pol_2_cart,cart_2_pol
-def warp_keypoints_old(keypoints, H):
+
+def warp_keypoints(keypoints, H):
     """Warp keypoints given a homography
 
     Parameters
@@ -23,32 +22,6 @@ def warp_keypoints_old(keypoints, H):
     homogeneous_points = np.concatenate([keypoints, np.ones((num_points, 1))], axis=1)
     warped_points = np.dot(homogeneous_points, np.transpose(H))
     return warped_points[:, :2] / warped_points[:, 2:]
-
-def warp_keypoints(keypoints, H):
-    """Warp keypoints given a homography
-
-    Parameters
-    ----------
-    keypoints: numpy.ndarray (N,2)
-        Keypoint vector.
-    H: numpy.ndarray (3,3)
-        Homography.
-
-    Returns
-    -------
-    warped_keypoints: numpy.ndarray (N,2)
-        Warped keypoints vector.
-    """
-    num_points = keypoints.shape[0]
-    # keypoints = pol_2_cart(torch.tensor(keypoints).unsqueeze(0), 60, 0.1, 5.0).squeeze(
-    #     0).numpy()
-
-    homogeneous_points = np.concatenate([keypoints, np.ones((num_points, 1))], axis=1)
-    warped_points = np.dot(homogeneous_points, np.transpose(H))
-    warped_points = warped_points[:, :2] / warped_points[:, 2:]
-    # warped_points = cart_2_pol(torch.tensor(warped_points).unsqueeze(0), 60, 0.1, 5.0).squeeze(0).numpy()
-    return warped_points
-
 
 def draw_keypoints(img_l, top_uvz, color=(255, 0, 0), idx=0):
     """Draw keypoints on an image"""

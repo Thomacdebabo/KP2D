@@ -1,11 +1,7 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
 # Adapted from: https://github.com/rpautrat/SuperPoint/blob/master/superpoint/evaluations/detector_evaluation.py
 
-import random
-from glob import glob
-from os import path as osp
 
-import cv2
 import numpy as np
 
 from kp2d.utils.keypoints import warp_keypoints

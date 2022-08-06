@@ -63,7 +63,7 @@ def main(file):
 
     # Initialize horovod
     n_threads = int(os.environ.get("OMP_NUM_THREADS", 1))
-    torch.set_num_threads(n_threads)    
+    torch.set_num_threads(n_threads)
     torch.backends.cudnn.benchmark = True
     # torch.backends.cudnn.deterministic = True
     noise_util = NoiseUtility(config.datasets.augmentation.image_shape,
