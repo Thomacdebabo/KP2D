@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from kp2d.datasets.sonarsim import SonarSimLoader
 from kp2d.datasets.patches_dataset import PatchesDataset
-from kp2d.evaluation.evaluate import evaluate_keypoint_net,evaluate_keypoint_net_sonar
+from kp2d.evaluation.evaluate import evaluate_keypoint_net
 from kp2d.networks.keypoint_net import KeypointNet
 from kp2d.networks.keypoint_resnet import KeypointResnet
 from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
@@ -70,22 +70,10 @@ def main():
                  patch_ratio=0.9,
                  scaling_amplitude=0.2)
     # Check model type
-    if 'keypoint_net_type' in checkpoint['config']['model']['params']:
-        net_type = checkpoint['config']['model']['params']['keypoint_net_type']
-    else:
-        net_type = 'KeypointNet' # default when no type is specified
+    detector = cv2.ORB_create(nfeatures=config["ORB"]["nfeatures"],
+                   patchSize=config["ORB"]["patchSize"],
+                   edgeThreshold=config["ORB"]["edgeThreshold"])
 
-    # Create and load keypoint net
-    if net_type == 'KeypointNet':
-        keypoint_net = KeypointNet(use_color=model_args['use_color'],
-                                do_upsample=model_args['do_upsample'],
-                                do_cross=model_args['do_cross'])
-    else:
-        keypoint_net = KeypointResnet()
-
-    keypoint_net.load_state_dict(checkpoint['state_dict'])
-    keypoint_net = keypoint_net.cuda()
-    keypoint_net.eval()
     print('Loaded KeypointNet from {}'.format(args.pretrained_model))
     print('KeypointNet params {}'.format(model_args))
 
@@ -103,9 +91,9 @@ def main():
                                  sampler=None)
 
         print(colored('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']),'green'))
-        rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net_sonar(
+        rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net(
             data_loader,
-            keypoint_net,
+            detector,
             noise_util=noise_util,
             output_shape=params['res'],
             top_k=params['top_k'],
