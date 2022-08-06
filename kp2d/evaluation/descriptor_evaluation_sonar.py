@@ -121,7 +121,7 @@ def keep_shared_points(keypoints, descriptors, H, shape, keep_k_points=1000):
 
 
 
-def compute_matching_score(data, keep_k_points=1000):
+def compute_matching_score_sonar(data, keep_k_points=1000):
     """
     Compute the matching score between two sets of keypoints with associated descriptors.
     
@@ -151,6 +151,7 @@ def compute_matching_score(data, keep_k_points=1000):
     """
     shape = data['image_shape']
     real_H = data['homography']
+    sonar_config = data['sonar_config']
 
     f = [shape[0] / 2, shape[1] / 2]
     a = [1,1]
@@ -160,18 +161,19 @@ def compute_matching_score(data, keep_k_points=1000):
 
     desc = data['desc']
     warped_desc = data['warped_desc']
+    sonar_config = data['sonar_config']
     
     # Keeps all points for the next frame. The matching for caculating M.Score shouldnt use only in view points.
     keypoints,        desc        = select_k_best(keypoints,               desc, keep_k_points)
     warped_keypoints, warped_desc = select_k_best(warped_keypoints, warped_desc, keep_k_points)
 
     cart_keypoints = torch.tensor(keypoints.copy() / f - a)
-    cart_keypoints = pol_2_cart(cart_keypoints.unsqueeze(0), 60, 0.1, 5.0).squeeze(
+    cart_keypoints = pol_2_cart(cart_keypoints.unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(
         0).numpy()
 
 
     cart_warped_keypoints = torch.tensor(warped_keypoints.copy() / f - a)
-    cart_warped_keypoints = pol_2_cart(cart_warped_keypoints.unsqueeze(0), 60, 0.1, 5.0).squeeze(
+    cart_warped_keypoints = pol_2_cart(cart_warped_keypoints.unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(
         0).numpy()
 
     
@@ -190,10 +192,10 @@ def compute_matching_score(data, keep_k_points=1000):
     m_warped_keypoints = cart_warped_keypoints[matches_idx, :]
 
     true_warped_keypoints = (warp_keypoints(m_keypoints, np.linalg.inv(real_H)))
-    true_warped_keypoints = cart_2_pol(torch.tensor(true_warped_keypoints).unsqueeze(0), 60, 0.1, 5.0).squeeze(0).numpy()
+    true_warped_keypoints = cart_2_pol(torch.tensor(true_warped_keypoints).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
     true_warped_keypoints = (true_warped_keypoints+a)*f
 
-    keypoints_warped_pol = cart_2_pol(torch.tensor(m_warped_keypoints).unsqueeze(0), 60, 0.1, 5.0).squeeze(0).numpy()
+    keypoints_warped_pol = cart_2_pol(torch.tensor(m_warped_keypoints).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
     keypoints_warped_pol = (keypoints_warped_pol + a) * f
 
     vis_warped = np.all((true_warped_keypoints >= 0) & (true_warped_keypoints <= (np.array(shape)-1)), axis=-1)
@@ -226,7 +228,7 @@ def compute_matching_score(data, keep_k_points=1000):
     ms = (score1 + score2) / 2
     return ms
 
-def compute_homography(data, noise_util, keep_k_points=1000):
+def compute_homography_sonar(data, noise_util, keep_k_points=1000):
     """
     Compute the homography between 2 sets of Keypoints and descriptors inside data. 
     Use the homography to compute the correctness metrics (1,3,5).
@@ -261,6 +263,7 @@ def compute_homography(data, noise_util, keep_k_points=1000):
     """
     shape = data['image'].shape[1:]
     real_H = data['homography']
+    sonar_config = data['sonar_config']
 
     f = [shape[0]/2, shape[1]/2,1]
     a = [1,1,0]
@@ -272,7 +275,7 @@ def compute_homography(data, noise_util, keep_k_points=1000):
 
     # Keeps only the points shared between the two views
     cart_keypoints = torch.tensor(keypoints.copy()/f-a)
-    cart_keypoints = pol_2_cart(cart_keypoints.unsqueeze(0), 60, 0.1, 5.0).squeeze(
+    cart_keypoints = pol_2_cart(cart_keypoints.unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(
         0).numpy()
     def keep_true_keypoints(points,warped_points, descriptors,):
         mask = (warped_points[:, 0] >= -1) & (warped_points[:, 0] < 1) & \
@@ -280,16 +283,16 @@ def compute_homography(data, noise_util, keep_k_points=1000):
         return points[mask, :], descriptors[mask, :]
 
     ckw = warp_keypoints(cart_keypoints[:,:2], np.linalg.inv(real_H))
-    ckw = cart_2_pol(torch.tensor(ckw).unsqueeze(0), 60, 0.1, 5.0).squeeze(0).numpy()
+    ckw = cart_2_pol(torch.tensor(ckw).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
     cart_keypoints, desc = keep_true_keypoints(cart_keypoints, ckw, desc)
     cart_keypoints, desc = select_k_best(cart_keypoints, desc, keep_k_points)
 
     cart_warped_keypoints = torch.tensor(warped_keypoints.copy() / f - a)
-    cart_warped_keypoints = pol_2_cart(cart_warped_keypoints.unsqueeze(0), 60, 0.1, 5.0).squeeze(
+    cart_warped_keypoints = pol_2_cart(cart_warped_keypoints.unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(
         0).numpy()
 
     ckw_2 = warp_keypoints(cart_warped_keypoints[:,:2], real_H)
-    ckw_2 = cart_2_pol(torch.tensor(ckw_2).unsqueeze(0), 60, 0.1, 5.0).squeeze(0).numpy()
+    ckw_2 = cart_2_pol(torch.tensor(ckw_2).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
     cart_warped_keypoints, warped_desc = keep_true_keypoints(cart_warped_keypoints, ckw_2, warped_desc)
     cart_warped_keypoints, warped_desc = select_k_best(cart_warped_keypoints, warped_desc, keep_k_points)
 
