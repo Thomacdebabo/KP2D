@@ -58,10 +58,10 @@ def build_descriptor_loss(source_des, target_des, source_points, tar_points, tar
             tar_points_raw = tar_points_un[cur_ind][:, keypoint_mask_ind]
 
         # Compute dense descriptor distance matrix and find nearest neighbor
-        ref_desc = ref_desc.div(torch.norm(ref_desc+epsilon, p=2, dim=0))
-        tar_desc = tar_desc.div(torch.norm(tar_desc+epsilon, p=2, dim=0))
+        ref_desc = ref_desc.div(torch.norm(ref_desc+epsilon, p=2, dim=0)+epsilon)
+        tar_desc = tar_desc.div(torch.norm(tar_desc+epsilon, p=2, dim=0)+epsilon)
         dmat = torch.mm(ref_desc.t(), tar_desc)
-        dmat = torch.sqrt(2 - 2 * torch.clamp(dmat, min=-1, max=1))
+        dmat = torch.sqrt(2 - 2 * torch.clamp(dmat, min=-1, max=1)+epsilon)
 
         # Sort distance matrix
         dmat_sorted, idx = torch.sort(dmat, dim=1)
@@ -414,6 +414,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
             self.vis['img_ori'] = np.clip(vis_ori, 0, 255) / 255.
             self.vis['heatmap'] = np.clip(heatmap * 255, 0, 255) / 255.
             self.vis['aug'] = np.clip(vis_aug, 0, 255) / 255.
+
             cv2.imshow('org', self.vis['img_ori'])
             cv2.imshow('heatmap', self.vis['heatmap'])
             cv2.imshow('aug', self.vis['aug'])
@@ -424,6 +425,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
                          B, Hc, Wc, H, W,
                          source_uv_norm, target_uv_norm, source_uv_warped_norm,
                          device, epsilon = 1e-8):
+
         top_k_score1, top_k_indice1 = source_score.view(B, Hc * Wc).topk(self.top_k2, dim=1, largest=False)
         top_k_mask1 = torch.zeros(B, Hc * Wc).to(device)
         top_k_mask1.scatter_(1, top_k_indice1, value=1)
@@ -443,8 +445,8 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         target_feat_topk = torch.nn.functional.grid_sample(target_feat, target_uv_norm_topk.unsqueeze(1),
                                                            align_corners=True).squeeze()
 
-        source_feat_topk = source_feat_topk.div(torch.norm(source_feat_topk, p=2, dim=1).unsqueeze(1))
-        target_feat_topk = target_feat_topk.div(torch.norm(target_feat_topk, p=2, dim=1).unsqueeze(1))
+        source_feat_topk = source_feat_topk.div(torch.norm(source_feat_topk, p=2, dim=1).unsqueeze(1)+epsilon)
+        target_feat_topk = target_feat_topk.div(torch.norm(target_feat_topk, p=2, dim=1).unsqueeze(1)+epsilon)
 
         dmat = torch.bmm(source_feat_topk.permute(0, 2, 1), target_feat_topk)
         dmat = torch.sqrt(2 - 2 * torch.clamp(dmat, min=-1, max=1)+epsilon)

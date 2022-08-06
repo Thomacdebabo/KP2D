@@ -6,7 +6,7 @@
 #    + cross-border keypoints
 #    + descriptor loss
 arch:
-    epochs: 20
+    epochs: 1
 model:
     params:
         use_color: True
@@ -14,6 +14,7 @@ model:
         do_upsample: True
         do_cross: True
         descriptor_loss: True
+        keypoint_net_type: "KeypointResnet"
     checkpoint_path: '../../../scratch/rueeggth/kp2d' 
 
 wandb:
@@ -28,8 +29,15 @@ datasets:
         patch_ratio: 0.9
         scaling_amplitude: 0.25
         max_angle_div: 4
-        super_resolution: 1
-
+        super_resolution: 2
+        preprocessing_gradient: True
+        add_row_noise: True
+        add_normal_noise: False
+        add_artifact: True
+        add_sparkle_noise: True
+        blur: True
+        add_speckle_noise: True
+        normalize: True
     train:
         path: '../../../scratch/rueeggth/dataset/SonarDataSets/Simulated'
         num_workers: 16

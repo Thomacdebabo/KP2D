@@ -17,6 +17,7 @@ model:
         do_cross: True
         descriptor_loss: True
         debug: True
+        keypoint_net_type: "KeypointResnet"
 
 wandb:
     dry_run: True
@@ -27,10 +28,20 @@ datasets:
         fov: 60
         r_min: 0.1
         r_max: 5.0
-        patch_ratio: 0.8
-        scaling_amplitude: 0.15
-        max_angle_div: 4
-        super_resolution: 1
+        patch_ratio: 0.7
+        scaling_amplitude: 0.5
+        max_angle_div: 2
+        super_resolution: 2
+        preprocessing_gradient: True
+        add_row_noise: True
+        add_normal_noise: False
+        add_sparkle_noise: False
+        add_artifact: True
+        blur: True
+        add_speckle_noise: False
+        normalize: True
+        amp: 70
+        artifact_amp: 200
 
     train:
         path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"
@@ -38,5 +49,5 @@ datasets:
         batch_size: 3
 
     val:
-        path: "D:/PycharmProjects/KP2D/data/datasets/kp2d/HPatches"
+        path: "D:/MachineLearning/SonarData/SonarDataSets/SimEval"
 
