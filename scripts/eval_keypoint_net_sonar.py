@@ -42,7 +42,7 @@ def main():
     parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
 
     args = parser.parse_args()
-    checkpoint = torch.load(args.pretrained_model)
+    checkpoint = torch.load(args.pretrained_model, map_location=torch.device('cpu'))
     model_args = checkpoint['config']['model']['params']
 
     noise_util = NoiseUtility((512,512),
@@ -77,12 +77,12 @@ def main():
         raise KeyError ("net_type not recognized: " + str(net_type))
 
     keypoint_net.load_state_dict(checkpoint['state_dict'])
-    keypoint_net = keypoint_net.cuda()
+    #keypoint_net = keypoint_net.cuda()
     keypoint_net.eval()
     print('Loaded KeypointNet from {}'.format(args.pretrained_model))
     print('KeypointNet params {}'.format(model_args))
 
-    eval_params = [{'res': (512, 512), 'top_k': 1500, }]
+    eval_params = [{'res': (512, 512), 'top_k': 3000, }]
 
     for params in eval_params:
         data_transforms = image_transforms(noise_util)

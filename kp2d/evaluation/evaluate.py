@@ -119,8 +119,8 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
     with torch.no_grad():
         for i, sample in tqdm(enumerate(data_loader), desc="evaluate_keypoint_net"):
             if use_color:
-                image = to_color_normalized(sample['image'].cuda())
-                warped_image = to_color_normalized(sample['image_aug'].cuda())
+                image = to_color_normalized(sample['image'])
+                warped_image = to_color_normalized(sample['image_aug'])
             else:
                 image = to_gray_normalized(sample['image'].cuda())
                 warped_image = to_gray_normalized(sample['image_aug'].cuda())
@@ -155,11 +155,13 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
             # Compute repeatabilty and localization error
             _, _, rep, loc_err = compute_repeatability_sonar(data, keep_k_points=top_k,
                                                              distance_thresh=3)
+            print(rep, loc_err)
             repeatability.append(rep)
             localization_err.append(loc_err)
 
             # Compute correctness
             c1, c5, c10, up, md = compute_homography_sonar(data,noise_util, keep_k_points=top_k) #TODO remove noise util once debugging is done
+            print(c1, c5, c10, up, md)
             correctness1.append(c1)
             correctness5.append(c5)
             correctness10.append(c10)

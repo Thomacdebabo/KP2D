@@ -191,8 +191,8 @@ def compute_matching_score_sonar(data, keep_k_points=1000):
     matches_idx = np.array([m.trainIdx for m in matches])
     m_warped_keypoints = cart_warped_keypoints[matches_idx, :]
 
-    true_warped_keypoints = (warp_keypoints(m_keypoints, np.linalg.inv(real_H)))
-    true_warped_keypoints = cart_2_pol(torch.tensor(true_warped_keypoints).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
+    true_warped_keypoints = (warp_keypoints(m_keypoints[:,[1,0]], np.linalg.inv(real_H)))
+    true_warped_keypoints = cart_2_pol(torch.tensor(true_warped_keypoints[:,[1,0]]).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
     true_warped_keypoints = (true_warped_keypoints+a)*f
 
     keypoints_warped_pol = cart_2_pol(torch.tensor(m_warped_keypoints).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
@@ -211,8 +211,8 @@ def compute_matching_score_sonar(data, keep_k_points=1000):
     matches_idx = np.array([m.trainIdx for m in matches])
     m_keypoints = cart_keypoints[matches_idx, :]
 
-    true_keypoints = warp_keypoints(m_warped_keypoints, real_H)
-    true_keypoints = cart_2_pol(torch.tensor(true_keypoints).unsqueeze(0), 60, 0.1, 5.0).squeeze(0).numpy()
+    true_keypoints = warp_keypoints(m_warped_keypoints[:,[1,0]], real_H)
+    true_keypoints = cart_2_pol(torch.tensor(true_keypoints[:,[1,0]]).unsqueeze(0), 60, 0.1, 5.0).squeeze(0).numpy()
     true_keypoints = (true_keypoints+a)*f
 
     keypoints_pol = cart_2_pol(torch.tensor(m_keypoints).unsqueeze(0), 60, 0.1, 5.0).squeeze(0).numpy()
@@ -228,7 +228,7 @@ def compute_matching_score_sonar(data, keep_k_points=1000):
     ms = (score1 + score2) / 2
     return ms
 
-def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False):
+def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = True):
     """
     Compute the homography between 2 sets of Keypoints and descriptors inside data. 
     Use the homography to compute the correctness metrics (1,3,5).
@@ -282,8 +282,8 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
                (warped_points[:, 1] >= -1) & (warped_points[:, 1] < 1)
         return points[mask, :], descriptors[mask, :]
 
-    ckw = warp_keypoints(cart_keypoints[:,:2], np.linalg.inv(real_H))
-    ckw = cart_2_pol(torch.tensor(ckw).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
+    ckw = warp_keypoints(cart_keypoints[:,[1,0]], np.linalg.inv(real_H))
+    ckw = cart_2_pol(torch.tensor(ckw[:,[1,0]]).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
     cart_keypoints, desc = keep_true_keypoints(cart_keypoints, ckw, desc)
     cart_keypoints, desc = select_k_best(cart_keypoints, desc, keep_k_points)
 
@@ -291,8 +291,8 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
     cart_warped_keypoints = pol_2_cart(cart_warped_keypoints.unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(
         0).numpy()
 
-    ckw_2 = warp_keypoints(cart_warped_keypoints[:,:2], real_H)
-    ckw_2 = cart_2_pol(torch.tensor(ckw_2).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
+    ckw_2 = warp_keypoints(cart_warped_keypoints[:,[1,0]], real_H)
+    ckw_2 = cart_2_pol(torch.tensor(ckw_2[:,[1,0]]).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
     cart_warped_keypoints, warped_desc = keep_true_keypoints(cart_warped_keypoints, ckw_2, warped_desc)
     cart_warped_keypoints, warped_desc = select_k_best(cart_warped_keypoints, warped_desc, keep_k_points)
 
@@ -311,7 +311,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
         return 0,0,0
 
     # Estimate the homography between the matches using RANSAC
-    H, h_mask = cv2.findHomography((m_warped_keypoints+a[:2])*f[:2], (m_keypoints+a[:2])*f[:2], cv2.RANSAC, 5.0)
+    H, h_mask = cv2.findHomography((m_warped_keypoints[:,[1,0]]+a[:2])*f[:2], (m_keypoints[:,[1,0]]+a[:2])*f[:2], cv2.RANSAC, 5.0)
 
 
     if H is None:
@@ -323,18 +323,18 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
                         [shape[0] - 1, shape[1] - 1, 1],
                         [shape[0]/2, shape[1]-1, 1]])/f-a
 
-    real_warped_corners = np.dot(corners, np.transpose(real_H))
-    real_warped_corners = real_warped_corners[:, :2] / real_warped_corners[:, 2:]
+    real_warped_corners = np.dot(corners[:,[1,0,2]], np.transpose(real_H))
+    real_warped_corners = real_warped_corners[:,[1,0]] / real_warped_corners[:, 2:]
     real_warped_corners = (real_warped_corners + a[:2]) * f[:2]
 
-    real_warped_keypoints = warp_keypoints(m_keypoints, np.linalg.inv(real_H))
-    real_warped_keypoints = (real_warped_keypoints + a[:2]) * f[:2]
+    real_warped_keypoints = warp_keypoints(m_keypoints[:,[1,0]], np.linalg.inv(real_H))
+    real_warped_keypoints = (real_warped_keypoints[:,[1,0]] + a[:2]) * f[:2]
 
-    warped_keypoints = warp_keypoints(m_warped_keypoints, real_H)
-    warped_keypoints = (warped_keypoints+a[:2])*f[:2]
+    warped_keypoints = warp_keypoints(m_warped_keypoints[:,[1,0]], real_H)
+    warped_keypoints = (warped_keypoints[:,[1,0]]+a[:2])*f[:2]
 
-    estimated_warped_keypoints = warp_keypoints(m_warped_keypoints, H)
-    estimated_warped_keypoints = (estimated_warped_keypoints+a[:2])*f[:2]
+    estimated_warped_keypoints = warp_keypoints(m_warped_keypoints[:,[1,0]], H)
+    estimated_warped_keypoints = (estimated_warped_keypoints[:,[1,0]]+a[:2])*f[:2]
 
 
 
@@ -394,10 +394,10 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
 
 
         cv2.waitKey(1)
-        try:
-            visualizeMatches(trainImage, (cart_warped_keypoints + a[:2]) * f[:2], query_image, (cart_keypoints + a[:2]) * f[:2], matches)
-        except:
-            print("whopsie")
+        # try:
+        #     visualizeMatches(trainImage, (cart_warped_keypoints + a[:2]) * f[:2], query_image, (cart_keypoints + a[:2]) * f[:2], matches)
+        # except:
+        #     print("whopsie")
         #
 
     return correctness1, correctness5, correctness10, useful_points_ratio, mean_distance
