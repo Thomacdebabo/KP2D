@@ -194,7 +194,7 @@ def main():
                                      sampler=None)
 
             print(colored('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']),'green'))
-            rep, loc, c1, c5, c10, mscore, up, ap, md = evaluate_keypoint_net_sonar(
+            rep, loc, p_amt, c1, c5, c10, mscore, up, ap, md = evaluate_keypoint_net_sonar(
                 data_loader,
                 keypoint_net,
                 noise_util=noise_util,
@@ -205,6 +205,7 @@ def main():
                             'result':
                                 { 'Repeatability':rep.item(),
                                 'Localization Error':loc.item(),
+                                'Amount of good points': p_amt.item(),
                                 'Correctness d1':c1.item(),
                                 'Correctness d5':c5.item(),
                                 'Correctness d10':c10.item(),
@@ -215,6 +216,7 @@ def main():
 
             print('Repeatability {0:.3f}'.format(rep))
             print('Localization Error {0:.3f}'.format(loc))
+            print('Amount of good points {0:.3f}'.format(p_amt))
             print('Correctness d1 {:.3f}'.format(c1))
             print('Correctness d5 {:.3f}'.format(c5))
             print('Correctness d10 {:.3f}'.format(c10))

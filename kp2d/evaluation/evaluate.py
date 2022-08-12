@@ -115,7 +115,7 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
 
     conf_threshold = 0.9
     localization_err, repeatability = [], []
-    correctness1, correctness5, correctness10, useful_points,absolute_amt_points, mean_distance, MScore = [], [], [], [], [], [], []
+    correctness1, correctness5, correctness10, useful_points,absolute_amt_points, mean_distance, MScore,p_amt = [], [], [], [], [], [], [], []
 
     with torch.no_grad():
         for i, sample in tqdm(enumerate(data_loader), desc="evaluate_keypoint_net"):
@@ -153,11 +153,16 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
                     'sonar_config': vars(noise_util)}
 
             # Compute repeatabilty and localization error
-            _, _, rep, loc_err = compute_repeatability_sonar(data, keep_k_points=top_k,
+            N1, N2, rep, loc_err = compute_repeatability_sonar(data, keep_k_points=top_k,
                                                              distance_thresh=3)
 
-            repeatability.append(rep)
-            localization_err.append(loc_err)
+            N = float((N1+N2)/2)
+
+            if (rep != -1) and (loc_err != -1):
+                repeatability.append(rep)
+                localization_err.append(loc_err)
+                p_amt.append(N)
+
 
             # Compute correctness
             c1, c5, c10, up, md, ap = compute_homography_sonar(data,noise_util, keep_k_points=top_k) #TODO remove noise util once debugging is done
@@ -173,7 +178,7 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
             mscore = compute_matching_score_sonar(data, keep_k_points=top_k)
             MScore.append(mscore)
 
-    return np.mean(repeatability), np.mean(localization_err), \
+    return np.mean(repeatability), np.mean(localization_err), np.mean(p_amt), \
            np.mean(correctness1), np.mean(correctness5), np.mean(correctness10), np.mean(MScore), np.mean(useful_points),\
            np.mean(absolute_amt_points), np.mean(mean_distance)
 
