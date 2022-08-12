@@ -34,7 +34,7 @@ def evaluate_keypoint_net(data_loader, keypoint_net,noise_util, output_shape=(32
     keypoint_net.eval()
     keypoint_net.training = False
 
-    conf_threshold = 0.9
+    conf_threshold = 0.7
     localization_err, repeatability = [], []
     correctness1, correctness3, correctness5, MScore = [], [], [], []
 
@@ -93,7 +93,7 @@ def evaluate_keypoint_net(data_loader, keypoint_net,noise_util, output_shape=(32
            np.mean(correctness1), np.mean(correctness3), np.mean(correctness5), np.mean(MScore)
 
 def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_shape=(512, 512), top_k=300,
-                          use_color=True):
+                          use_color=True, device = 'cuda'):
     """Keypoint net evaluation script.
 
     Parameters
@@ -112,18 +112,18 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
     keypoint_net.eval()
     keypoint_net.training = False
 
-    conf_threshold = 0.0
+    conf_threshold = 0.9
     localization_err, repeatability = [], []
     correctness1, correctness5, correctness10, useful_points, mean_distance, MScore = [], [], [], [], [], []
 
     with torch.no_grad():
         for i, sample in tqdm(enumerate(data_loader), desc="evaluate_keypoint_net"):
             if use_color:
-                image = to_color_normalized(sample['image'])
-                warped_image = to_color_normalized(sample['image_aug'])
+                image = to_color_normalized(sample['image']).to(device)
+                warped_image = to_color_normalized(sample['image_aug']).to(device)
             else:
-                image = to_gray_normalized(sample['image'].cuda())
-                warped_image = to_gray_normalized(sample['image_aug'].cuda())
+                image = to_gray_normalized(sample['image']).to(device)
+                warped_image = to_gray_normalized(sample['image_aug']).to(device)
 
             score_1, coord_1, desc1 = keypoint_net(image)
             score_2, coord_2, desc2 = keypoint_net(warped_image)
@@ -140,7 +140,6 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
             desc2 = desc2[score_2[:, 2] > conf_threshold, :]
             score_1 = score_1[score_1[:, 2] > conf_threshold, :]
             score_2 = score_2[score_2[:, 2] > conf_threshold, :]
-
             # Prepare data for eval
             data = {'image': sample['image'].numpy().squeeze(),
                     'image_shape': output_shape,
@@ -155,13 +154,13 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
             # Compute repeatabilty and localization error
             _, _, rep, loc_err = compute_repeatability_sonar(data, keep_k_points=top_k,
                                                              distance_thresh=3)
-            print(rep, loc_err)
+
             repeatability.append(rep)
             localization_err.append(loc_err)
 
             # Compute correctness
             c1, c5, c10, up, md = compute_homography_sonar(data,noise_util, keep_k_points=top_k) #TODO remove noise util once debugging is done
-            print(c1, c5, c10, up, md)
+
             correctness1.append(c1)
             correctness5.append(c5)
             correctness10.append(c10)
