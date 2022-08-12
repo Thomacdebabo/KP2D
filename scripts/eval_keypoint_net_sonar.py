@@ -69,17 +69,14 @@ def image_transforms(noise_util):
 
     return {'train': train_transforms}
 def main():
-    #"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V_5.ckpt"
-    #"D:\PycharmProjects\KP2D\data\models\kp2d\v4.ckpt"
-
-    device = 'cuda'
     parser = argparse.ArgumentParser(
         description='Script for KeyPointNet testing',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
-    parser.add_argument("--device", required=False, type=str, help="cuda or cpu")
+    parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cpu')
 
     args = parser.parse_args()
+
     model_paths = [r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V4_A4.ckpt",
                    r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V_6.ckpt",
                    r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V_5.ckpt",
@@ -159,12 +156,15 @@ def main():
                     'scaling_amplitude': 0.2,
                     'max_angle_div': 4}
                    ]
-    results = []
+    evaluation_results = {}
     for model_path in model_paths:
-        keypoint_net, config = _load_model(model_path, device)
+        keypoint_net, config = _load_model(model_path, args.device)
+        model_name = model_path.split('\\')[-1]
 
-
+        results = []
         for params in eval_params:
+            run_name = model_name + " - " + params['name']
+
             noise_util = NoiseUtility(params['res'],
                                       fov=params['fov'],
                                       r_min=params['r_min'],
@@ -194,16 +194,15 @@ def main():
                                      sampler=None)
 
             print(colored('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']),'green'))
-            rep, loc, c1, c5, c10, mscore, up, md = evaluate_keypoint_net_sonar(
+            rep, loc, c1, c5, c10, mscore, up, ap, md = evaluate_keypoint_net_sonar(
                 data_loader,
                 keypoint_net,
                 noise_util=noise_util,
                 output_shape=params['res'],
                 top_k=params['top_k'],
-                use_color=True, device=device)
-            results.append({'params': params,
-                            'model_config': config,
-                            'eval_result':
+                use_color=True, device=args.device)
+            results.append({'run_name': run_name,
+                            'result':
                                 { 'Repeatability':rep.item(),
                                 'Localization Error':loc.item(),
                                 'Correctness d1':c1.item(),
@@ -211,6 +210,7 @@ def main():
                                 'Correctness d10':c10.item(),
                                 'MScore':mscore.item(),
                                 'Useful points ratio ':up.item(),
+                                'Absolute amount of used points ':ap.item(),
                                 'Mean distance (debug)':md.item()}})
 
             print('Repeatability {0:.3f}'.format(rep))
@@ -220,12 +220,17 @@ def main():
             print('Correctness d10 {:.3f}'.format(c10))
             print('MScore {:.3f}'.format(mscore))
             print('Useful points ratio  {:.3f}'.format(up))
+            print('Absolute amount of used points  {:.3f}'.format(ap))
             print('Mean distance (debug) {:.3f}'.format(md))
+        evaluation_results[model_name] = {'model_config': config,
+                                          'evaluation': results}
+
+    evaluation_results['eval_params'] = eval_params
 
     dt = datetime.now().strftime("_%d_%m_%Y__%H_%M_%S")
     pth = os.path.join('../data/eval', dt + "_eval_result.json")
     with open(pth, "w") as f:
-        json.dump(results, f, indent=4, separators=(", ", ": "))
+        json.dump(evaluation_results, f, indent=4, separators=(", ", ": "))
         print("Saved evaluation results to:",pth)
 
 if __name__ == '__main__':

@@ -317,11 +317,11 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
         matches_idx = np.array([m.queryIdx for m in matches])
         m_keypoints = cart_keypoints[matches_idx, :]
     except:
-        return 0,0,0,0,0
+        return 0,0,0,0,0,0
     matches_idx = np.array([m.trainIdx for m in matches])
     m_warped_keypoints = cart_warped_keypoints[matches_idx, :]
     if m_keypoints.shape[0] <4 or m_warped_keypoints.shape[0] <4:
-        return 0,0,0,0,0
+        return 0,0,0,0,0,0
 
     # Estimate the homography between the matches using RANSAC
     #This has to be done unnormalized for some reason?
@@ -329,7 +329,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
 
 
     if H is None:
-        return 0, 0, 0,0,0
+        return 0, 0, 0,0,0,0
 
     #BEWARE: apparently computing homographies in normalized coordinates does not work? So we have to estimate H in unnormalized coordinates.
     #This leads to us having to treat H and real_H differently
@@ -356,6 +356,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
     correctness5 = float(mean_dist <= 5)
     correctness10 = float(mean_dist <= 10)
     useful_points_ratio = float(h_mask.sum()/matches_idx.__len__())
+    abs_points = int(h_mask.sum())
     mean_distance = float(mean_dist)
 
     #DEBUG PICS
@@ -398,7 +399,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
         # except:
         #     print("whopsie")
 
-    return correctness1, correctness5, correctness10, useful_points_ratio, mean_distance
+    return correctness1, correctness5, correctness10, useful_points_ratio, mean_distance, abs_points
 
 
 def draw_kps(img_debug, corners, c = (0, 0, 255)):
