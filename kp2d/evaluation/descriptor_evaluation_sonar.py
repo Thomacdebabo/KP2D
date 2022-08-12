@@ -277,6 +277,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
 
     f = [shape[0]/2, shape[1]/2]
     a = [1,1]
+
     f3 = [shape[0]/2, shape[1]/2, 1]
     a3 = [1,1,0]
 
@@ -350,17 +351,6 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
     warped_keypoints = warp_keypoints(m_warped_keypoints, real_H)
     warped_keypoints = unnormalize_keypoints(warped_keypoints, f, a)
 
-
-
-
-
-    # num_points = m_keypoints.shape[0]
-    # homogeneous_points = np.concatenate([m_keypoints/f[:2]-a[:2], np.ones((num_points, 1))], axis=1)
-    # real_warped_keypoints = (np.dot(homogeneous_points, np.transpose(np.linalg.inv(real_H)))+a)*f
-    # real_warped_keypoints = real_warped_keypoints[:, :2] / real_warped_keypoints[:, 2:]
-
-
-    
     mean_dist = np.mean(np.linalg.norm(real_warped_corners - warped_corners, axis=1))
     correctness1 = float(mean_dist <= 1)
     correctness5 = float(mean_dist <= 5)
@@ -373,7 +363,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
         img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image'].copy()/255).unsqueeze(0))
         img_debug = np.ascontiguousarray((img_debug*255).squeeze(0).numpy().astype(np.uint8).transpose(1,2,0))
 
-        img_debug = draw_kps(img_debug, (corners+a)*f, c = (0,0,255))
+        img_debug = draw_kps(img_debug, unnormalize_keypoints(corners,f,a), c = (0,0,255))
         img_debug = draw_kps(img_debug, real_warped_corners, c = (255,0,255))
         #img_debug = draw_kps(img_debug, m_warped_keypoints, c = (255,0,0))
         img_debug = draw_kps(img_debug,  unnormalize_keypoints(m_keypoints,f,a), c = (0,255,0))

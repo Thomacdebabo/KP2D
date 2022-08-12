@@ -92,7 +92,6 @@ def compute_repeatability_sonar(data, keep_k_points=300, distance_thresh=3):
     ckw[:, :2] = unnormalize_keypoints(ckw[:, :2], f, a)
     warped_keypoints = keep_true_keypoints(warped_keypoints,ckw, shape)#TODO Issue
 
-
     # Warp the original keypoints with the true homography
     true_warped_keypoints = normalize_keypoints(keypoints.copy(),f,a)
     true_warped_keypoints = pol_2_cart(torch.tensor(true_warped_keypoints).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
@@ -132,7 +131,8 @@ def compute_repeatability_sonar(data, keep_k_points=300, distance_thresh=3):
         correct2 = (min2 <= distance_thresh)
         count2 = np.sum(correct2)
         le2 = min2[correct2].sum()
-    if N1 + N2 > 0:
+
+    if N1 + N2 > 0 and count1 + count2 > 0:
         repeatability = (count1 + count2) / (N1 + N2)
         loc_err = (le1 + le2) / (count1 + count2)
     else:

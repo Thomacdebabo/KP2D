@@ -159,11 +159,11 @@ def main():
                     'scaling_amplitude': 0.2,
                     'max_angle_div': 4}
                    ]
+    results = []
     for model_path in model_paths:
         keypoint_net, config = _load_model(model_path, device)
-        print(config)
 
-        results = []
+
         for params in eval_params:
             noise_util = NoiseUtility(params['res'],
                                       fov=params['fov'],
@@ -222,11 +222,11 @@ def main():
             print('Useful points ratio  {:.3f}'.format(up))
             print('Mean distance (debug) {:.3f}'.format(md))
 
-        dt = datetime.now().strftime("_%d_%m_%Y__%H_%M_%S")
-        pth = os.path.join('../data/eval', dt + "_eval_result.json")
-        with open(pth, "w") as f:
-            json.dump(results, f, indent=4, separators=(", ", ": "))
-            print("Saved evaluation results to:",pth)
+    dt = datetime.now().strftime("_%d_%m_%Y__%H_%M_%S")
+    pth = os.path.join('../data/eval', dt + "_eval_result.json")
+    with open(pth, "w") as f:
+        json.dump(results, f, indent=4, separators=(", ", ": "))
+        print("Saved evaluation results to:",pth)
 
 if __name__ == '__main__':
     main()
