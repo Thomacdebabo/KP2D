@@ -23,7 +23,7 @@ from kp2d.networks.keypoint_resnet import KeypointResnet
 from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
                                          spatial_augment_sample,
                                          to_tensor_sample,to_tensor_sonar_sample)
-from kp2d.datasets.noise_model import NoiseUtility
+from kp2d.datasets.noise_model import NoiseUtility, to_numpy
 
 
 def image_transforms(noise_util):

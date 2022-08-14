@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from kp2d.datasets.patches_dataset import PatchesDataset
 from kp2d.datasets.sonarsim import SonarSimLoader
-from kp2d.evaluation.evaluate import evaluate_keypoint_net
+from kp2d.evaluation.evaluate import evaluate_keypoint_net,evaluate_keypoint_net_sonar
 from kp2d.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2d.utils.config import parse_train_file
 from kp2d.utils.logging import SummaryWriter, printcolor
@@ -171,7 +171,7 @@ def evaluation(config, completed_epoch, model, summary,noise_util):
         print('Loaded {} image pairs '.format(len(data_loader)))
 
         printcolor('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']))
-        rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net(data_loader,
+        rep, loc, p_amt, c1, c5, c10, mscore, up, ap, md = evaluate_keypoint_net_sonar(data_loader,
                                                             model_submodule(model).keypoint_net,
                                                              noise_util,
                                                             output_shape=params['res'],

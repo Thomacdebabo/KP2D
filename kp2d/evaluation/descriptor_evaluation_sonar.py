@@ -238,7 +238,7 @@ def compute_matching_score_sonar(data, keep_k_points=1000):
     ms = (score1 + score2) / 2
     return ms
 
-def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False):
+def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = True):
     """
     Compute the homography between 2 sets of Keypoints and descriptors inside data. 
     Use the homography to compute the correctness metrics (1,3,5).
@@ -393,7 +393,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
         cv2.imshow("hi2", img_debug)
 
 
-        cv2.waitKey(1)
+        cv2.waitKey(0)
         # try:
         #     visualizeMatches(trainImage, unnormalize_keypoints(cart_warped_keypoints, f, a), query_image, unnormalize_keypoints(cart_keypoints, f, a), matches)
         # except:
