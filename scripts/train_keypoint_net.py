@@ -4,16 +4,13 @@ import argparse
 import os
 from datetime import datetime
 
-import numpy as np
 import torch
 import torch.optim as optim
-import torchvision.transforms as transforms
-from torch.utils.data import ConcatDataset, DataLoader
+
 from tqdm import tqdm
 
-from kp2d.datasets.patches_dataset import PatchesDataset
-from kp2d.datasets.sonarsim import SonarSimLoader
-from kp2d.evaluation.evaluate import evaluate_keypoint_net,evaluate_keypoint_net_sonar
+
+from kp2d.evaluation.evaluate import evaluate_keypoint_net_sonar
 from kp2d.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2d.utils.config import parse_train_file
 from kp2d.utils.logging import SummaryWriter, printcolor
@@ -132,7 +129,7 @@ def main(file):
 
 
     # Initial evaluation
-    evaluation(config, 0, model, summary,noise_util)
+    #evaluation(config, 0, model, summary,noise_util)
     # Train
     for epoch in range(config.arch.epochs):
         # train for one epoch (only log if eval to have aligned steps...)
@@ -140,10 +137,10 @@ def main(file):
         train(config, train_loader, model, optimizer, epoch, summary)
 
         # Model checkpointing, eval, and logging
-        try:
-            evaluation(config, epoch + 1, model, summary,noise_util)
-        except:
-            print("Evaluation failed...")
+        # try:
+        #     #evaluation(config, epoch + 1, model, summary,noise_util)
+        # except:
+        #     print("Evaluation failed...")
     printcolor('Training complete, models saved in {}'.format(config.model.checkpoint_path), "green")
 
 def evaluation(config, completed_epoch, model, summary,noise_util):
