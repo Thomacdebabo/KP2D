@@ -3,7 +3,6 @@
 
 import argparse
 
-import torch
 import os
 import json
 
@@ -12,7 +11,7 @@ from termcolor import colored
 from torch.utils.data import DataLoader
 
 from kp2d.datasets.sonarsim import SonarSimLoader
-from kp2d.evaluation.evaluate import evaluate_ORB_sonar,evaluate_keypoint_net_sonar
+from kp2d.evaluation.evaluate import evaluate_ORB_sonar
 
 from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
                                          spatial_augment_sample,
@@ -50,7 +49,7 @@ def main():
     args = parser.parse_args()
     top_k = 1500
     res = 512
-    model_paths = ["ORB"]
+
     eval_params = [
         {'name': 'V6 V4_A4 config',
                     'res': (res, res),

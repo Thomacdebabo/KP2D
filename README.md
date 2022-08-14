@@ -1,15 +1,26 @@
-# KP2D on sonar images
+# KP2DSonar
 
 ## About
 This repository implements the use of KP2D on sonar images and adds some improvements specifically for sonar images such as:
+### Contributions
+- polar/cartesian coordinate transforms
+- noise model
+- sonar dataset loader
 
-- support for the representation of pictures in polar coordinates
-- adjusted homograpies for working with polar coordinates
-- custom noise model to make network more robust
+### Evaluation
+- evaluation can now be done at the same time on multiple models / configurations
+- evaluation for ORB as a baseline
+- everything is customizable and configurations are always saved (during training and evaluation)
+
+### General improvements
 - also fixed some bugs related to the training on RTX 30 series
 - improved training performance by about 30%
+- remove docker support (sorry :( )
+- remove wandb support
+- remove multigpu support
+##
 
-## 
+
 
 ## Overview KP2D
 ![](media/imgs/diagram_architecture.png)
