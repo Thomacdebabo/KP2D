@@ -19,6 +19,9 @@ from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
                                          to_tensor_sample,to_tensor_sonar_sample)
 from kp2d.datasets.noise_model import NoiseUtility
 import cv2
+def _print_result(result_dict):
+    for k in result_dict.keys():
+        print("%s: %.3f" %( k, result_dict[k]))
 
 def image_transforms(noise_util):
     def train_transforms(sample):
@@ -205,6 +208,7 @@ def main():
             use_color=True, device=args.device)
         results.append({'run_name': run_name,
                         'result':result_dict})
+        _print_result(result_dict)
 
     evaluation_results["ORB"] = {'evaluation': results}
 
