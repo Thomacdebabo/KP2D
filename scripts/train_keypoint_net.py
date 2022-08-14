@@ -181,16 +181,20 @@ def evaluation(config, completed_epoch, model, summary,noise_util):
             summary.add_scalar('repeatability_'+str(params['res']), rep)
             summary.add_scalar('localization_' + str(params['res']), loc)
             summary.add_scalar('correctness_'+str(params['res'])+'_'+str(1), c1)
-            summary.add_scalar('correctness_'+str(params['res'])+'_'+str(3), c3)
             summary.add_scalar('correctness_'+str(params['res'])+'_'+str(5), c5)
+            summary.add_scalar('correctness_'+str(params['res'])+'_'+str(10), c10)
             summary.add_scalar('mscore' + str(params['res']), mscore)
 
         print('Repeatability {0:.3f}'.format(rep))
         print('Localization Error {0:.3f}'.format(loc))
+        print('Amount of good points {0:.3f}'.format(p_amt))
         print('Correctness d1 {:.3f}'.format(c1))
-        print('Correctness d3 {:.3f}'.format(c3))
         print('Correctness d5 {:.3f}'.format(c5))
+        print('Correctness d10 {:.3f}'.format(c10))
         print('MScore {:.3f}'.format(mscore))
+        print('Useful points ratio  {:.3f}'.format(up))
+        print('Absolute amount of used points  {:.3f}'.format(ap))
+        print('Mean distance (debug) {:.3f}'.format(md))
 
     # Save checkpoint
     if config.model.save_checkpoint:
