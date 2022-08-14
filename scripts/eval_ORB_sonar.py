@@ -45,12 +45,13 @@ def main():
     parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cpu')
 
     args = parser.parse_args()
-
+    top_k = 1500
+    res = 512
     model_paths = ["ORB"]
     eval_params = [
-                   {'name': 'V6 V4_A4 config',
-                    'res': (1024, 1024),
-                    'top_k': 1500,
+        {'name': 'V6 V4_A4 config',
+                    'res': (res, res),
+                    'top_k': top_k,
                     'fov': 60,
                     'r_min': 0.1,
                     'r_max': 5.0,
@@ -67,8 +68,8 @@ def main():
                     'scaling_amplitude': 0.2,
                     'max_angle_div': 12},
                    {'name': 'V5 config',
-                    'res': (512, 512),
-                    'top_k': 1500,
+                    'res': (res, res),
+                    'top_k': top_k,
                     'fov': 60,
                     'r_min': 0.1,
                     'r_max': 5.0,
@@ -85,8 +86,8 @@ def main():
                     'scaling_amplitude': 0.2,
                     'max_angle_div': 12}, #decided to not copy these values due to it being not very good at evaluating if big
                   {'name': 'only row noise',
-                   'res': (512, 512),
-                   'top_k': 1500,
+                   'res': (res, res),
+                   'top_k': top_k,
                    'fov': 60,
                    'r_min': 0.1,
                    'r_max': 5.0,
@@ -103,8 +104,8 @@ def main():
                    'scaling_amplitude': 0.2,
                    'max_angle_div': 12},
                    {'name': 'no noise at all',
-                    'res': (512, 512),
-                    'top_k': 1500,
+                    'res': (res, res),
+                    'top_k': top_k,
                     'fov': 60,
                     'r_min': 0.1,
                     'r_max': 5.0,
@@ -119,8 +120,43 @@ def main():
                     'blur': False,
                     'patch_ratio': 0.8,
                     'scaling_amplitude': 0.2,
-                    'max_angle_div': 4}
-                   ]
+                    'max_angle_div': 4},
+                    {'name': 'all the noise',
+                     'res': (res, res),
+                     'top_k': top_k,
+                     'fov': 60,
+                     'r_min': 0.1,
+                     'r_max': 5.0,
+                     'super_resolution': 1,
+                     'normalize': True,
+                     'preprocessing_gradient': True,
+                     'add_row_noise': True,
+                     'add_artifact': True,
+                     'add_sparkle_noise': True,
+                     'add_normal_noise': False,
+                     'add_speckle_noise': True,
+                     'blur': True,
+                     'patch_ratio': 0.8,
+                     'scaling_amplitude': 0.2,
+                     'max_angle_div': 4}]
+    eval_params = [{'name': 'all the noise',
+                     'res': (res, res),
+                     'top_k': top_k,
+                     'fov': 60,
+                     'r_min': 0.1,
+                     'r_max': 5.0,
+                     'super_resolution': 1,
+                     'normalize': True,
+                     'preprocessing_gradient': True,
+                     'add_row_noise': True,
+                     'add_artifact': True,
+                     'add_sparkle_noise': True,
+                     'add_normal_noise': False,
+                     'add_speckle_noise': True,
+                     'blur': True,
+                     'patch_ratio': 0.8,
+                     'scaling_amplitude': 0.2,
+                     'max_angle_div': 4}]
     evaluation_results = {}
 
     detector = cv2.ORB_create(nfeatures=300,
@@ -160,7 +196,7 @@ def main():
                                  sampler=None)
 
         print(colored('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']),'green'))
-        rep, loc, p_amt, c1, c5, c10, mscore, up, ap, md = evaluate_ORB_sonar(
+        result_dict = evaluate_ORB_sonar(
             data_loader,
             detector,
             noise_util=noise_util,
@@ -168,29 +204,9 @@ def main():
             top_k=params['top_k'],
             use_color=True, device=args.device)
         results.append({'run_name': run_name,
-                        'result':
-                            { 'Repeatability':rep.item(),
-                            'Localization Error':loc.item(),
-                            'Amount of good points': p_amt.item(),
-                            'Correctness d1':c1.item(),
-                            'Correctness d5':c5.item(),
-                            'Correctness d10':c10.item(),
-                            'MScore':mscore.item(),
-                            'Useful points ratio ':up.item(),
-                            'Absolute amount of used points ':ap.item(),
-                            'Mean distance (debug)':md.item()}})
+                        'result':result_dict})
 
-        print('Repeatability {0:.3f}'.format(rep))
-        print('Localization Error {0:.3f}'.format(loc))
-        print('Amount of good points {0:.3f}'.format(p_amt))
-        print('Correctness d1 {:.3f}'.format(c1))
-        print('Correctness d5 {:.3f}'.format(c5))
-        print('Correctness d10 {:.3f}'.format(c10))
-        print('MScore {:.3f}'.format(mscore))
-        print('Useful points ratio  {:.3f}'.format(up))
-        print('Absolute amount of used points  {:.3f}'.format(ap))
-        print('Mean distance (debug) {:.3f}'.format(md))
-        evaluation_results["ORB"] = {'evaluation': results}
+    evaluation_results["ORB"] = {'evaluation': results}
 
     evaluation_results['eval_params'] = eval_params
 

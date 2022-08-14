@@ -93,8 +93,8 @@ def evaluate_keypoint_net(data_loader, keypoint_net,noise_util, output_shape=(32
     return np.mean(repeatability), np.mean(localization_err), \
            np.mean(correctness1), np.mean(correctness3), np.mean(correctness5), np.mean(MScore)
 
-def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_shape=(512, 512), top_k=300,
-                          use_color=True, device = 'cuda'):
+def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_shape=(512, 512),conf_threshold = 0.9, top_k=300,
+                          use_color=True, device = 'cuda', debug = False):
     """Keypoint net evaluation script.
 
     Parameters
@@ -113,7 +113,7 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
     keypoint_net.eval()
     keypoint_net.training = False
 
-    conf_threshold = 0.9
+
     localization_err, repeatability = [], []
     correctness1, correctness5, correctness10, useful_points,absolute_amt_points, mean_distance, MScore,p_amt = [], [], [], [], [], [], [], []
 
@@ -165,7 +165,7 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
 
 
             # Compute correctness
-            c1, c5, c10, up, md, ap = compute_homography_sonar(data,noise_util, keep_k_points=top_k) #TODO remove noise util once debugging is done
+            c1, c5, c10, up, md, ap = compute_homography_sonar(data,noise_util, keep_k_points=top_k,debug=debug) #TODO remove noise util once debugging is done
 
             correctness1.append(c1)
             correctness5.append(c5)
@@ -178,9 +178,16 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
             mscore = compute_matching_score_sonar(data, keep_k_points=top_k)
             MScore.append(mscore)
 
-    return np.mean(repeatability), np.mean(localization_err), np.mean(p_amt), \
-           np.mean(correctness1), np.mean(correctness5), np.mean(correctness10), np.mean(MScore), np.mean(useful_points),\
-           np.mean(absolute_amt_points), np.mean(mean_distance)
+    return {'Repeatability': np.mean(repeatability).item(),
+     'Localization Error': np.mean(localization_err).item(),
+     'Amount of good points': np.mean(p_amt).item(),
+     'Correctness d1': np.mean(correctness1).item(),
+     'Correctness d5': np.mean(correctness5).item(),
+     'Correctness d10': np.mean(correctness10).item(),
+     'MScore': np.mean(MScore).item(),
+     'Useful points ratio ': np.mean(useful_points).item(),
+     'Absolute amount of used points ': np.mean(absolute_amt_points).item(),
+     'Mean distance (debug)': np.mean(mean_distance).item()}
 
 
 def evaluate_ORB_sonar(data_loader, detector, noise_util, output_shape=(512, 512), top_k=300,
@@ -286,6 +293,13 @@ def evaluate_ORB_sonar(data_loader, detector, noise_util, output_shape=(512, 512
             mscore = compute_matching_score_sonar(data, keep_k_points=top_k)
             MScore.append(mscore)
 
-    return np.mean(repeatability), np.mean(localization_err), np.mean(p_amt), \
-           np.mean(correctness1), np.mean(correctness5), np.mean(correctness10), np.mean(MScore), np.mean(useful_points),\
-           np.mean(absolute_amt_points), np.mean(mean_distance), no_points
+    return {'Repeatability': np.mean(repeatability).item(),
+         'Localization Error': np.mean(localization_err).item(),
+         'Amount of good points': np.mean(p_amt).item(),
+         'Correctness d1': np.mean(correctness1).item(),
+         'Correctness d5': np.mean(correctness5).item(),
+         'Correctness d10': np.mean(correctness10).item(),
+         'MScore': np.mean(MScore).item(),
+         'Useful points ratio ': np.mean(useful_points).item(),
+         'Absolute amount of used points ': np.mean(absolute_amt_points).item(),
+         'Mean distance (debug)': np.mean(mean_distance).item()}

@@ -1,28 +1,14 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
 # Adapted from: https://github.com/rpautrat/SuperPoint/blob/master/superpoint/evaluations/descriptor_evaluation.py
 
-import random
-from glob import glob
-from os import path as osp
-
-import cv2
-import numpy as np
-
 from kp2d.utils.keypoints import warp_keypoints
 from kp2d.datasets.noise_model import pol_2_cart,cart_2_pol
 import torch
-
-from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
-                                         spatial_augment_sample,
-                                         to_tensor_sample,to_tensor_sonar_sample)
-from kp2d.utils.keypoints import draw_keypoints
-
 
 #Pasted for debug
 import cv2
 from matplotlib import pyplot as plt
 import numpy as np
-from datetime import datetime
 import os
 
 def convertToKeypoints(points):
@@ -238,7 +224,7 @@ def compute_matching_score_sonar(data, keep_k_points=1000):
     ms = (score1 + score2) / 2
     return ms
 
-def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = True):
+def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False):
     """
     Compute the homography between 2 sets of Keypoints and descriptors inside data. 
     Use the homography to compute the correctness metrics (1,3,5).
@@ -393,7 +379,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = True)
         cv2.imshow("hi2", img_debug)
 
 
-        cv2.waitKey(0)
+        cv2.waitKey(1)
         # try:
         #     visualizeMatches(trainImage, unnormalize_keypoints(cart_warped_keypoints, f, a), query_image, unnormalize_keypoints(cart_keypoints, f, a), matches)
         # except:

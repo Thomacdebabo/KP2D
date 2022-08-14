@@ -2,18 +2,10 @@
 # Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2d/v4.pth --input_dir /data/datasets/kp2d/HPatches/
 
 import argparse
-import os
-import pickle
-import random
-import subprocess
 
-import cv2
-import numpy as np
 import torch
-from PIL import Image
 from termcolor import colored
-from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm
+from torch.utils.data import DataLoader
 
 from kp2d.datasets.patches_dataset import PatchesDataset
 from kp2d.evaluation.evaluate import evaluate_keypoint_net

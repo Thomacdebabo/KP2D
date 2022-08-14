@@ -9,7 +9,6 @@ import torch.optim as optim
 
 from tqdm import tqdm
 
-
 from kp2d.evaluation.evaluate import evaluate_keypoint_net_sonar
 from kp2d.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2d.utils.config import parse_train_file
@@ -62,7 +61,7 @@ def main(file):
     n_threads = int(os.environ.get("OMP_NUM_THREADS", 1))
     torch.set_num_threads(n_threads)
     torch.backends.cudnn.benchmark = True
-    # torch.backends.cudnn.deterministic = True
+
     noise_util = NoiseUtility(config.datasets.augmentation.image_shape,
                               fov=config.datasets.augmentation.fov,
                               r_min=config.datasets.augmentation.r_min,
@@ -129,18 +128,17 @@ def main(file):
 
 
     # Initial evaluation
-    #evaluation(config, 0, model, summary,noise_util)
+    evaluation(config, 0, model, summary,noise_util)
     # Train
     for epoch in range(config.arch.epochs):
         # train for one epoch (only log if eval to have aligned steps...)
         printcolor("\n--------------------------------------------------------------")
         train(config, train_loader, model, optimizer, epoch, summary)
 
-        # Model checkpointing, eval, and logging
-        # try:
-        #     #evaluation(config, epoch + 1, model, summary,noise_util)
-        # except:
-        #     print("Evaluation failed...")
+        try:
+            evaluation(config, epoch + 1, model, summary,noise_util)
+        except:
+            print("Evaluation failed...")
     printcolor('Training complete, models saved in {}'.format(config.model.checkpoint_path), "green")
 
 def evaluation(config, completed_epoch, model, summary,noise_util):
