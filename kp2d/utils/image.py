@@ -110,6 +110,6 @@ def to_color_normalized(images):
         Normalized grayscale images.
     """
     assert len(images.shape) == 4
-    images -= 0.5
-    images *= 0.225
-    return images
+    # images -= 0.5
+    # images *= 0.225
+    return images/255.0

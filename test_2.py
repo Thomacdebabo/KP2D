@@ -7,7 +7,7 @@ from kp2d.utils.keypoints import draw_keypoints,  warp_keypoints
 import glob
 import kp2d.utils.tt_image as tt
 
-model_path = r"D:\PycharmProjects\KP2D\data\models\kp2d/model.ckpt"
+model_path = r"C:\\Users\\Dr. Paul von Immel\\Downloads\\sonar_sim_noise/7.ckpt"
 picture_path = r"D:\MachineLearning\SonarData\SonarDataSets\Real\FoldingChair3m\frame0029.jpg"
 
 #load model

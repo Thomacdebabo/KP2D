@@ -62,7 +62,7 @@ class ai84_keypointnet(nn.Module):
         self.convFb = ai8x.FusedConv2dBNReLU(in_channels = c4, out_channels = c4, kernel_size = 3,
                                     padding=1, bias=bias, **kwargs)
 
-        self.convFaa = ai8x.FusedConv2dBNReLU(in_channels = c4, out_channels = c5, kernel_size = 3,
+        self.convFaa = ai8x.FusedMaxPoolConv2dBNReLU(in_channels = c4, out_channels = c5, kernel_size = 3,
                                           padding=1, bias=bias, **kwargs)
         self.convFbb = ai8x.Conv2d(in_channels = c5, out_channels = n_features, kernel_size = 3,
                                     padding=1, bias=bias, **kwargs)
