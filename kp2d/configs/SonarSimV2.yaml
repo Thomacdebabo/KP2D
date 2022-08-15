@@ -42,6 +42,7 @@ datasets:
         normalize: True
         amp: 70
         artifact_amp: 200
+        image_shape: (256,256)
 
     train:
         path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"

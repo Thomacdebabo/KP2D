@@ -4,16 +4,12 @@ import argparse
 import os
 from datetime import datetime
 
-import numpy as np
 import torch
 import torch.optim as optim
-import torchvision.transforms as transforms
-from torch.utils.data import ConcatDataset, DataLoader
+
 from tqdm import tqdm
 
-from kp2d.datasets.patches_dataset import PatchesDataset
-from kp2d.datasets.sonarsim import SonarSimLoader
-from kp2d.evaluation.evaluate import evaluate_keypoint_net
+from kp2d.evaluation.evaluate import evaluate_keypoint_net_sonar
 from kp2d.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2d.utils.config import parse_train_file
 from kp2d.utils.logging import SummaryWriter, printcolor
@@ -65,7 +61,7 @@ def main(file):
     n_threads = int(os.environ.get("OMP_NUM_THREADS", 1))
     torch.set_num_threads(n_threads)
     torch.backends.cudnn.benchmark = True
-    # torch.backends.cudnn.deterministic = True
+
     noise_util = NoiseUtility(config.datasets.augmentation.image_shape,
                               fov=config.datasets.augmentation.fov,
                               r_min=config.datasets.augmentation.r_min,
@@ -139,7 +135,6 @@ def main(file):
         printcolor("\n--------------------------------------------------------------")
         train(config, train_loader, model, optimizer, epoch, summary)
 
-        # Model checkpointing, eval, and logging
         try:
             evaluation(config, epoch + 1, model, summary,noise_util)
         except:
@@ -171,7 +166,7 @@ def evaluation(config, completed_epoch, model, summary,noise_util):
         print('Loaded {} image pairs '.format(len(data_loader)))
 
         printcolor('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']))
-        rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net(data_loader,
+        rep, loc, p_amt, c1, c5, c10, mscore, up, ap, md = evaluate_keypoint_net_sonar(data_loader,
                                                             model_submodule(model).keypoint_net,
                                                              noise_util,
                                                             output_shape=params['res'],
@@ -181,16 +176,20 @@ def evaluation(config, completed_epoch, model, summary,noise_util):
             summary.add_scalar('repeatability_'+str(params['res']), rep)
             summary.add_scalar('localization_' + str(params['res']), loc)
             summary.add_scalar('correctness_'+str(params['res'])+'_'+str(1), c1)
-            summary.add_scalar('correctness_'+str(params['res'])+'_'+str(3), c3)
             summary.add_scalar('correctness_'+str(params['res'])+'_'+str(5), c5)
+            summary.add_scalar('correctness_'+str(params['res'])+'_'+str(10), c10)
             summary.add_scalar('mscore' + str(params['res']), mscore)
 
         print('Repeatability {0:.3f}'.format(rep))
         print('Localization Error {0:.3f}'.format(loc))
+        print('Amount of good points {0:.3f}'.format(p_amt))
         print('Correctness d1 {:.3f}'.format(c1))
-        print('Correctness d3 {:.3f}'.format(c3))
         print('Correctness d5 {:.3f}'.format(c5))
+        print('Correctness d10 {:.3f}'.format(c10))
         print('MScore {:.3f}'.format(mscore))
+        print('Useful points ratio  {:.3f}'.format(up))
+        print('Absolute amount of used points  {:.3f}'.format(ap))
+        print('Mean distance (debug) {:.3f}'.format(md))
 
     # Save checkpoint
     if config.model.save_checkpoint:

@@ -12,7 +12,11 @@ from kp2d.utils.keypoints import warp_keypoints
 
 from kp2d.datasets.noise_model import pol_2_cart,cart_2_pol
 
+def normalize_keypoints(kp, f , a):
+    return kp / f - a
 
+def unnormalize_keypoints(kp, f , a):
+    return (kp + a)*f
 def compute_repeatability_sonar(data, keep_k_points=300, distance_thresh=3):
     """
     Compute the repeatability metric between 2 sets of keypoints inside data.
@@ -47,15 +51,14 @@ def compute_repeatability_sonar(data, keep_k_points=300, distance_thresh=3):
     """
     def filter_keypoints(points, shape):
         """ Keep only the points whose coordinates are inside the dimensions of shape. """
-        mask = (points[:, 0] >= -1) & (points[:, 0] < 1) &\
-               (points[:, 1] >= -1) & (points[:, 1] < 1)
+        mask = (points[:, 0] >= 0) & (points[:, 0] < shape[0]) &\
+               (points[:, 1] >= 0) & (points[:, 1] < shape[1])
         return points[mask, :]
 
-    def keep_true_keypoints(points, H, shape):
+    def keep_true_keypoints(points,ckw, shape):
         """ Keep only the points whose warped coordinates by H are still inside shape. """
-        warped_points = warp_keypoints(points[:,:2], H)
-        mask = (warped_points[:, 0] >= 0) & (warped_points[:, 0] < shape[0]) &\
-               (warped_points[:, 1] >= 0) & (warped_points[:, 1] < shape[1])
+        mask = (ckw[:, 0] >= 0) & (ckw[:, 0] < shape[0]) &\
+               (ckw[:, 1] >= 0) & (ckw[:, 1] < shape[1])
         return points[mask, :]
 
     def select_k_best(points, k):
@@ -69,21 +72,37 @@ def compute_repeatability_sonar(data, keep_k_points=300, distance_thresh=3):
     shape = data['image_shape']
     sonar_config = data['sonar_config']
 
+    f = [shape[0] / 2, shape[1] / 2]
+    a = [1,1]
+
     # Filter out predictions
-    keypoints = data['prob'][:,:2]/shape*2-1
+    keypoints = data['prob'][:,:2]
     warped_keypoints = data['warped_prob']
-    #warped_keypoints = keep_true_keypoints(warped_keypoints, np.linalg.inv(H), shape)/shape*2-1 #TODO Issue
+
+    ckw = normalize_keypoints(warped_keypoints[:,:2].copy(), f, a)
+    ckw = pol_2_cart(torch.tensor(ckw).unsqueeze(0), sonar_config["fov"],
+                                       sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
+
+    ckw = warp_keypoints(ckw, H)
+    ckw = np.stack([ckw[:, 0], ckw[:, 1], data['warped_prob'][:, 2]],
+                                     axis=-1)
+
+    ckw = cart_2_pol(torch.tensor(ckw).unsqueeze(0), sonar_config["fov"],
+                                       sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
+    ckw[:, :2] = unnormalize_keypoints(ckw[:, :2], f, a)
+    warped_keypoints = keep_true_keypoints(warped_keypoints,ckw, shape)#TODO Issue
 
     # Warp the original keypoints with the true homography
-    true_warped_keypoints = pol_2_cart(torch.tensor(keypoints).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
+    true_warped_keypoints = normalize_keypoints(keypoints.copy(),f,a)
+    true_warped_keypoints = pol_2_cart(torch.tensor(true_warped_keypoints).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
 
-    true_warped_keypoints = warp_keypoints(true_warped_keypoints, H)
+    true_warped_keypoints = warp_keypoints(true_warped_keypoints, np.linalg.inv(H))
     true_warped_keypoints = np.stack([true_warped_keypoints[:, 0], true_warped_keypoints[:, 1], data['prob'][:, 2]], axis=-1)
-    true_warped_keypoints = filter_keypoints(true_warped_keypoints, shape)
 
     true_warped_keypoints = cart_2_pol(torch.tensor(true_warped_keypoints).unsqueeze(0), sonar_config["fov"], sonar_config["r_min"], sonar_config["r_max"]).squeeze(0).numpy()
 
-    true_warped_keypoints[:,:2] = (true_warped_keypoints[:,:2]+1)*shape/2
+    true_warped_keypoints[:,:2] = unnormalize_keypoints(true_warped_keypoints[:,:2],f,a)
+    true_warped_keypoints = filter_keypoints(true_warped_keypoints, shape)
 
     # Keep only the keep_k_points best predictions
     warped_keypoints = select_k_best(warped_keypoints, keep_k_points)
@@ -92,10 +111,12 @@ def compute_repeatability_sonar(data, keep_k_points=300, distance_thresh=3):
     # Compute the repeatability
     N1 = true_warped_keypoints.shape[0]
     N2 = warped_keypoints.shape[0]
+
     true_warped_keypoints = np.expand_dims(true_warped_keypoints, 1)
     warped_keypoints = np.expand_dims(warped_keypoints, 0)
     # shapes are broadcasted to N1 x N2 x 2:
     norm = np.linalg.norm(true_warped_keypoints - warped_keypoints, ord=None, axis=2)
+
     count1 = 0
     count2 = 0
     le1 = 0
@@ -110,11 +131,11 @@ def compute_repeatability_sonar(data, keep_k_points=300, distance_thresh=3):
         correct2 = (min2 <= distance_thresh)
         count2 = np.sum(correct2)
         le2 = min2[correct2].sum()
-    if N1 + N2 > 0:
+
+    if N1 + N2 > 0 and count1 + count2 > 0:
         repeatability = (count1 + count2) / (N1 + N2)
         loc_err = (le1 + le2) / (count1 + count2)
     else:
         repeatability = -1
         loc_err = -1
-
     return N1, N2, repeatability, loc_err

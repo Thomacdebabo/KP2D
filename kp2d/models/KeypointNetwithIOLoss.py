@@ -314,10 +314,6 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         input_img_aug = data['image_aug']/255.
         homography = data['homography']
 
-
-        #input_img = to_color_normalized(input_img.clone())
-        #input_img_aug = to_color_normalized(input_img_aug.clone())
-
         # Get network outputs
         source_score, source_uv_pred, source_feat = self.keypoint_net(input_img_aug)
         target_score, target_uv_pred, target_feat = self.keypoint_net(input_img)
@@ -377,8 +373,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
             loss_2d += self.keypoint_loss_weight * io_loss
             loss_dict['io_loss'] = io_loss
-        #print(loss_dict)
-        # if debug and torch.cuda.current_device() == 0:
+
         if debug or self.debug:
             # Generate visualization data
             vis_ori = (input_img[0].permute(1, 2, 0).detach().cpu().clone().squeeze() )

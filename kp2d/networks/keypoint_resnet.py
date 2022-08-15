@@ -156,7 +156,7 @@ class KeypointResnet(nn.Module):
         pretrained = True
         self.encoderK = KeypointEncoder(pretrained=pretrained, with_drop=True)
         self.decoderK = KeypointDecoder()
-
+        self.nfeatures = self.decoderK.feat_scales
         self.cross_ratio = 2.0
         self.cell = 8
         
