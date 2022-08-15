@@ -1,19 +1,8 @@
-###################################################################################################
-# MemeNet network
-# Marco Giordano
-# Center for Project Based Learning
-# 2022 - ETH Zurich
-###################################################################################################
-"""
-MemeNet network description
-"""
-from signal import pause
 from torch import nn
 import torch
 import ai8x
 
 from kp2d.utils.image import image_grid
-import matplotlib.pyplot as plt
 
 """
 Network description class
