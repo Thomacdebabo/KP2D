@@ -48,7 +48,7 @@ def main():
 
     args = parser.parse_args()
     top_k = 1500
-    res = 512
+    res = 1024
 
     eval_params = [
         {'name': 'V6 V4_A4 config',
@@ -141,24 +141,7 @@ def main():
                      'patch_ratio': 0.8,
                      'scaling_amplitude': 0.2,
                      'max_angle_div': 4}]
-    eval_params = [{'name': 'all the noise',
-                     'res': (res, res),
-                     'top_k': top_k,
-                     'fov': 60,
-                     'r_min': 0.1,
-                     'r_max': 5.0,
-                     'super_resolution': 1,
-                     'normalize': True,
-                     'preprocessing_gradient': True,
-                     'add_row_noise': True,
-                     'add_artifact': True,
-                     'add_sparkle_noise': True,
-                     'add_normal_noise': False,
-                     'add_speckle_noise': True,
-                     'blur': True,
-                     'patch_ratio': 0.8,
-                     'scaling_amplitude': 0.2,
-                     'max_angle_div': 4}]
+
     evaluation_results = {}
 
     detector = cv2.ORB_create(nfeatures=300,

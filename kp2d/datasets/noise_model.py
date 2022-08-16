@@ -170,6 +170,8 @@ class NoiseUtility():
             noise = noise*self.super_resolution
             filtered = torch.clip(filtered + noise,0,255)
 
+        #TODO: evaluate normal against row noise to see if it is actually doing anything
+        # (has to be done once there is a real ealuation set)
         if self.add_normal_noise:
             noise = torch.clip((torch.rand(filtered.shape)-0.5)*amp,0,255).to(self.device)
             for i in range(round(self.super_resolution)):
@@ -330,6 +332,7 @@ class NoiseUtility():
                                                 align_corners=True)
 
 # Static noise adding functinos
+#TODO: check if we should apply rowwise attenuation in polar or cartesian coordinates
 def create_row_noise_torch(x, amp= 50, device='cpu'):
     amp = torch.tensor(amp)
     noise = x.clone().to(device)

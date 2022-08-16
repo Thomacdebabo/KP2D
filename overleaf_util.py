@@ -13,7 +13,10 @@ def print_table(data, first_line, metric):
         if k == "eval_params":
             continue
         eval = data[k]['evaluation']
-        string = k[:-5].replace('_', '') + ' & '
+        if k == "ORB":
+            string = k + ' & '
+        else:
+            string = k[:-5].replace('_', '') + ' & '
         for i in eval[:-1]:
             string = string + "{:.3f}".format(i['result'][metric]) + " & "
         i = eval[-1]
@@ -35,7 +38,7 @@ def read_json(path):
     return data
 
 
-path = r'./data/eval/_15_08_2022__00_20_24_eval_result.json'
+path = r'./data/eval/_15_08_2022__11_37_29_eval_result.json'
 data = read_json(path)
 rKeys = ["Repeatability","Correctness d5", "Amount of good points", "MScore"]
 first_line = create_first_line(data)

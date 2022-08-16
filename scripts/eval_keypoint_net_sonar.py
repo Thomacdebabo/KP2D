@@ -83,11 +83,13 @@ def main():
                    r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V_5.ckpt",
                    r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\row.ckpt",
                    r"D:\PycharmProjects\KP2D\data\models\kp2d\v4.ckpt"]
+    # model_paths = [r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\m_1.ckpt",
+    #                r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\m_2.ckpt"]
 
     top_k = 1500
-    res = 1024
+    res = 512
     conf_threshold = 0.9
-    debug = False
+    debug = True
 
     eval_params = [
         {'name': 'V6 V4_A4 config',
