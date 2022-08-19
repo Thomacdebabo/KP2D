@@ -87,7 +87,7 @@ class NoiseUtility():
         self.fov = fov
         self.shape = shape
 
-        #
+        # run inits
         self.device = device
         self.map, self.map_inv = self.init_map()
         self.kernel = self.init_kernel()
