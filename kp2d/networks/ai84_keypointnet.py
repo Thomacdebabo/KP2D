@@ -11,7 +11,7 @@ class ai84_keypointnet(nn.Module):
     """
     7-Layer CNN - Lightweight image classification
     """
-    def __init__(self, num_classes = 10,n_features=64, dimensions=(512, 512), num_channels=3, bias=True, **kwargs):
+    def __init__(self, n_features=64, dimensions=(512, 512), num_channels=3, bias=True, **kwargs):
         super().__init__()
         ai8x.set_device(84, None, False)
         # assert dimensions[0] == dimensions[1]  # Only square supported
