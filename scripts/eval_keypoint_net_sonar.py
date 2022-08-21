@@ -17,7 +17,7 @@ from kp2dsonar.networks.keypoint_net import KeypointNet
 from kp2dsonar.networks.keypoint_resnet import KeypointResnet
 from kp2dsonar.datasets.augmentations import to_tensor_sonar_sample, resize_sample
 from kp2dsonar.datasets.noise_model import NoiseUtility
-
+import glob
 def _print_result(result_dict):
     for k in result_dict.keys():
         print("%s: %.3f" %( k, result_dict[k]))
@@ -74,25 +74,20 @@ def main():
         description='Script for KeyPointNet testing',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
+    parser.add_argument("--model_dir", required=False, type=str, help="Directory with models which will get evaluated", default='..\data\models\kp2dsonar')
     parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cpu')
 
+    #Configuration - default: runs over all models found in ..\data\models\kp2dsonar
     args = parser.parse_args()
-
-    model_paths = [r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V4_A4.ckpt",
-                   r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V_6.ckpt",
-                   r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V_5.ckpt",
-                   r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\row.ckpt",
-                   r"D:\PycharmProjects\KP2D\data\models\kp2d\v4.ckpt"]
-
-
+    model_paths = glob.glob(os.path.join(args.model_dir,"*.ckpt"))
     top_k = 1500
-    res = 512
+    res = (512,512)
     conf_threshold = 0.9
     debug = True
 
     eval_params = [
         {'name': 'V6 V4_A4 config',
-         'res': (res, res),
+         'res': res,
          'top_k': top_k,
          'fov': 60,
          'r_min': 0.1,
@@ -110,7 +105,7 @@ def main():
          'scaling_amplitude': 0.2,
          'max_angle_div': 12},
         {'name': 'V5 config',
-         'res': (res, res),
+         'res': res,
          'top_k': top_k,
          'fov': 60,
          'r_min': 0.1,
@@ -128,7 +123,7 @@ def main():
          'scaling_amplitude': 0.2,
          'max_angle_div': 12},  # decided to not copy these values due to it being not very good at evaluating if big
         {'name': 'only row noise',
-         'res': (res, res),
+         'res': res,
          'top_k': top_k,
          'fov': 60,
          'r_min': 0.1,
@@ -146,7 +141,7 @@ def main():
          'scaling_amplitude': 0.2,
          'max_angle_div': 12},
         {'name': 'no noise at all',
-         'res': (res, res),
+         'res': res,
          'top_k': top_k,
          'fov': 60,
          'r_min': 0.1,
@@ -164,7 +159,7 @@ def main():
          'scaling_amplitude': 0.2,
          'max_angle_div': 4},
         {'name': 'all the noise',
-         'res': (res, res),
+         'res': res,
          'top_k': top_k,
          'fov': 60,
          'r_min': 0.1,
