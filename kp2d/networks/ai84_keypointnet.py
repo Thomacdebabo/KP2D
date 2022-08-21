@@ -7,13 +7,11 @@
 """
 MemeNet network description
 """
-from signal import pause
 from torch import nn
 import torch
 import ai8x
 
 from kp2d.utils.image import image_grid
-import matplotlib.pyplot as plt
 
 """
 Network description class
@@ -22,9 +20,9 @@ class ai84_keypointnet(nn.Module):
     """
     7-Layer CNN - Lightweight image classification
     """
-    def __init__(self, num_classes = 10,n_features=64, dimensions=(512, 512), num_channels=3, bias=True, **kwargs):
+    def __init__(self, n_features=64, dimensions=(512, 512), num_channels=3, bias=True, **kwargs):
         super().__init__()
-        ai8x.set_device(84, None, False)
+        ai8x.set_device(84, False, False)
         # assert dimensions[0] == dimensions[1]  # Only square supported
 
         # Keep track of image dimensions so one constructor works for all image sizes
@@ -70,7 +68,6 @@ class ai84_keypointnet(nn.Module):
         self.cell = 8
         self.bn_momentum = 0.1
         self.cross_ratio = 2.0
-
     """
     Assemble the model
     """
@@ -81,6 +78,7 @@ class ai84_keypointnet(nn.Module):
         # plt.imshow(x[1, 0], cmap="gray")
         # plt.show()
         # breakpoint()
+
         B, _, H, W = x.shape
         
         x = self.conv1a(x)
@@ -91,7 +89,7 @@ class ai84_keypointnet(nn.Module):
         x = self.conv3b(x)
         
         score = self.convDa(x)
-        score = self.convDb(score).sigmoid()
+        score = self.convDb(score) #removed sigmoid because not supported
 
         B, _, Hc, Wc = score.shape
 
@@ -120,5 +118,6 @@ class ai84_keypointnet(nn.Module):
         feat = self.convFb(feat)
         feat = self.convFaa(feat)
         feat = self.convFbb(feat)
-
+        print(score.min())
+        print(score.max())
         return score, coord, feat

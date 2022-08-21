@@ -17,6 +17,7 @@ model:
         do_cross: True
         descriptor_loss: True
         debug: True
+        keypoint_net_type: 'KeypointMAX'
 
 wandb:
     dry_run: True
