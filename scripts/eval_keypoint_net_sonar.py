@@ -1,5 +1,4 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
-# Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2dsonar/v4.pth --input_dir /data/datasets/kp2dsonar/HPatches/
 
 import argparse
 
@@ -18,6 +17,7 @@ from kp2dsonar.networks.keypoint_resnet import KeypointResnet
 from kp2dsonar.datasets.augmentations import to_tensor_sonar_sample, resize_sample
 from kp2dsonar.datasets.noise_model import NoiseUtility
 import glob
+
 def _print_result(result_dict):
     for k in result_dict.keys():
         print("%s: %.3f" %( k, result_dict[k]))
@@ -50,42 +50,8 @@ def _load_model(model_path, device):
 
     return keypoint_net, checkpoint['config']
 
-def image_transforms(noise_util):
-    def train_transforms(sample):
-        sample = resize_sample(sample, image_shape=noise_util.shape)
-
-        sample = noise_util.pol_2_cart_sample(sample)
-        sample = noise_util.augment_sample(sample)
-
-        sample = noise_util.filter_sample(sample)
-        sample = noise_util.cart_2_pol_sample(sample)
-        if noise_util.post_noise:
-            sample = noise_util.add_noise_function(sample)
-        sample = to_tensor_sonar_sample(sample)
-
-
-        return sample
-
-    return {'train': train_transforms}
-
-def main():
-
-    parser = argparse.ArgumentParser(
-        description='Script for KeyPointNet testing',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
-    parser.add_argument("--model_dir", required=False, type=str, help="Directory with models which will get evaluated", default='..\data\models\kp2dsonar')
-    parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cpu')
-
-    #Configuration - default: runs over all models found in ..\data\models\kp2dsonar
-    args = parser.parse_args()
-    model_paths = glob.glob(os.path.join(args.model_dir,"*.ckpt"))
-    top_k = 1500
-    res = (512,512)
-    conf_threshold = 0.9
-    debug = True
-
-    eval_params = [
+def _get_eval_params(res, top_k):
+    return [
         {'name': 'V6 V4_A4 config',
          'res': res,
          'top_k': top_k,
@@ -178,6 +144,49 @@ def main():
          'max_angle_div': 4}
     ]
 
+def image_transforms(noise_util):
+    def train_transforms(sample):
+        sample = resize_sample(sample, image_shape=noise_util.shape)
+
+        sample = noise_util.pol_2_cart_sample(sample)
+        sample = noise_util.augment_sample(sample)
+
+        sample = noise_util.filter_sample(sample)
+        sample = noise_util.cart_2_pol_sample(sample)
+        if noise_util.post_noise:
+            sample = noise_util.add_noise_function(sample)
+        sample = to_tensor_sonar_sample(sample)
+
+
+        return sample
+
+    return {'train': train_transforms}
+
+def main():
+
+    parser = argparse.ArgumentParser(
+        description='Script for KeyPointNet testing',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
+    parser.add_argument("--model_dir", required=False, type=str, help="Directory with models which will get evaluated", default='..\data\models\kp2dsonar')
+    parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cpu')
+    parser.add_argument("--top_k", required=False, type=int, help="top-k value", default=1500)
+    parser.add_argument("--conf_threshold", required=False, type=float, help="Score threshold for keypoint detection", default=0.9)
+    parser.add_argument("--debug", required=False, type=bool, help="toggle debug plots", default=False)
+    parser.add_argument("--res", required=False, type=int, help="resolution in x direction", default=512)
+
+    #Configuration - default: runs over all models found in ..\data\models\kp2dsonar
+    args = parser.parse_args()
+    model_paths = glob.glob(os.path.join(args.model_dir,"*.ckpt"))
+    top_k = args.top_k
+    res = (args.res, args.res) #only square pics allowed at this point... Might cause problems with resnet if not square
+    conf_threshold = args.conf_threshold
+    debug = args.debug
+
+    print("Running evaluation on:")
+    print(model_paths)
+
+    eval_params = _get_eval_params(res, top_k)
     evaluation_results = {}
 
     for model_path in model_paths:
@@ -238,10 +247,10 @@ def main():
         evaluation_results[model_name] = {'model_config': config,
                                           'evaluation': results}
 
-    evaluation_results['eval_params'] = eval_params
+        evaluation_results['eval_params'] = eval_params
 
-    dt = datetime.now().strftime("_%d_%m_%Y__%H_%M_%S")
-    pth = os.path.join('../data/eval', dt + "_eval_result.json")
+        #dt = datetime.now().strftime("_%d_%m_%Y__%H_%M_%S")
+        pth = os.path.join('../data/eval', model_name + "_eval_result.json")
 
     with open(pth, "w") as f:
         json.dump(evaluation_results, f, indent=4, separators=(", ", ": "))
