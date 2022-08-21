@@ -19,6 +19,8 @@ This repository implements the use of KP2D on sonar images and adds some improve
 - remove wandb support
 - remove multigpu support
 ##
+Models and evaluation results can be founde [**[here]**] (https://drive.google.com/drive/folders/1YP-ZyYxEYugyMI7QwpNScbjHgbOQilxs?usp=sharing)
+
 
 
 
