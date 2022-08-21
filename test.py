@@ -1,7 +1,7 @@
 import torch
-from kp2d.networks.keypoint_net import KeypointNet
+from kp2dsonar.networks.keypoint_net import KeypointNet
 import cv2
-from kp2d.utils.keypoints import draw_keypoints
+from kp2dsonar.utils.keypoints import draw_keypoints
 import glob
 
 import numpy as np

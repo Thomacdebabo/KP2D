@@ -9,14 +9,14 @@ import torch.optim as optim
 
 from tqdm import tqdm
 
-from kp2d.evaluation.evaluate import evaluate_keypoint_net_sonar
-from kp2d.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
-from kp2d.utils.config import parse_train_file
-from kp2d.utils.logging import SummaryWriter, printcolor
+from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net_sonar
+from kp2dsonar.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
+from kp2dsonar.utils.config import parse_train_file
+from kp2dsonar.utils.logging import SummaryWriter, printcolor
 from train_keypoint_net_utils import (_set_seeds, sample_to_cuda,
                                       setup_datasets_and_dataloaders, setup_datasets_and_dataloaders_eval, image_transforms)
 
-from kp2d.datasets.noise_model import NoiseUtility
+from kp2dsonar.datasets.noise_model import NoiseUtility
 #torch.autograd.set_detect_anomaly(True)
 def parse_args():
     """Parse arguments for training script"""

@@ -1,0 +1,48 @@
+# Copyright 2020 Toyota Research Institute.  All rights reserved.
+
+# Config for training the v4 model:
+#    + IONet
+#    + descriptor upsampling
+#    + cross-border keypoints
+#    + descriptor loss
+arch:
+    epochs: 1
+model:
+    params:
+        use_color: True
+        with_io: True
+        do_upsample: True
+        do_cross: True
+        descriptor_loss: True
+        keypoint_net_type: "KeypointResnet"
+    checkpoint_path: '../../../scratch/rueeggth/kp2dsonar'
+
+wandb:
+    dry_run: True
+    project: ""
+datasets:
+    augmentation:
+        mode: 'sonar_sim'
+        fov: 60
+        r_min: 0.1
+        r_max: 5.0
+        patch_ratio: 0.9
+        scaling_amplitude: 0.25
+        max_angle_div: 4
+        super_resolution: 2
+        preprocessing_gradient: True
+        add_row_noise: True
+        add_normal_noise: False
+        add_artifact: True
+        add_sparkle_noise: True
+        blur: True
+        add_speckle_noise: True
+        normalize: True
+    train:
+        path: '../../../scratch/rueeggth/dataset/SonarDataSets/Simulated'
+        num_workers: 16
+        batch_size: 4
+    val:
+        path: "../Dataset/HPatches/hpatches-sequences-release/"
+
+

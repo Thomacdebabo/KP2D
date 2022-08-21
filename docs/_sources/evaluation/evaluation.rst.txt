@@ -1,7 +1,0 @@
-evaluation
-==========
-
-.. toctree::
-   evaluation.detector_evaluation
-   evaluation.evaluate
-   evaluation.descriptor_evaluation

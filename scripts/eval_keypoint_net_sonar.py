@@ -1,5 +1,5 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
-# Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2d/v4.pth --input_dir /data/datasets/kp2d/HPatches/
+# Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2dsonar/v4.pth --input_dir /data/datasets/kp2dsonar/HPatches/
 
 import argparse
 
@@ -11,12 +11,12 @@ from datetime import datetime
 from termcolor import colored
 from torch.utils.data import DataLoader
 
-from kp2d.datasets.sonarsim import SonarSimLoader
-from kp2d.evaluation.evaluate import evaluate_keypoint_net_sonar
-from kp2d.networks.keypoint_net import KeypointNet
-from kp2d.networks.keypoint_resnet import KeypointResnet
-from kp2d.datasets.augmentations import to_tensor_sonar_sample, resize_sample
-from kp2d.datasets.noise_model import NoiseUtility
+from kp2dsonar.datasets.sonarsim import SonarSimLoader
+from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net_sonar
+from kp2dsonar.networks.keypoint_net import KeypointNet
+from kp2dsonar.networks.keypoint_resnet import KeypointResnet
+from kp2dsonar.datasets.augmentations import to_tensor_sonar_sample, resize_sample
+from kp2dsonar.datasets.noise_model import NoiseUtility
 
 def _print_result(result_dict):
     for k in result_dict.keys():
@@ -83,8 +83,7 @@ def main():
                    r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V_5.ckpt",
                    r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\row.ckpt",
                    r"D:\PycharmProjects\KP2D\data\models\kp2d\v4.ckpt"]
-    # model_paths = [r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\m_1.ckpt",
-    #                r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\m_2.ckpt"]
+
 
     top_k = 1500
     res = 512

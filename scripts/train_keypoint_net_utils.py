@@ -8,11 +8,11 @@ import torch
 import torch.utils.data.distributed
 from torch.utils.data import ConcatDataset, DataLoader
 
-from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
-                                         spatial_augment_sample,
-                                         to_tensor_sample,to_tensor_sonar_sample)
-from kp2d.datasets.coco import COCOLoader
-from kp2d.datasets.sonarsim import SonarSimLoader
+from kp2dsonar.datasets.augmentations import (ha_augment_sample, resize_sample,
+                                              spatial_augment_sample,
+                                              to_tensor_sample, to_tensor_sonar_sample)
+from kp2dsonar.datasets.coco import COCOLoader
+from kp2dsonar.datasets.sonarsim import SonarSimLoader
 
 #TODO: remove
 def sample_to_cuda(data):
