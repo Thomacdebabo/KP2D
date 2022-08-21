@@ -1,12 +1,3 @@
-###################################################################################################
-# MemeNet network
-# Marco Giordano
-# Center for Project Based Learning
-# 2022 - ETH Zurich
-###################################################################################################
-"""
-MemeNet network description
-"""
 from torch import nn
 import torch
 import ai8x
@@ -22,7 +13,7 @@ class ai84_keypointnet(nn.Module):
     """
     def __init__(self, n_features=64, dimensions=(512, 512), num_channels=3, bias=True, **kwargs):
         super().__init__()
-        ai8x.set_device(84, False, False)
+        ai8x.set_device(84, None, False)
         # assert dimensions[0] == dimensions[1]  # Only square supported
 
         # Keep track of image dimensions so one constructor works for all image sizes
@@ -60,7 +51,7 @@ class ai84_keypointnet(nn.Module):
         self.convFb = ai8x.FusedConv2dBNReLU(in_channels = c4, out_channels = c4, kernel_size = 3,
                                     padding=1, bias=bias, **kwargs)
 
-        self.convFaa = ai8x.FusedConv2dBNReLU(in_channels = c4, out_channels = c5, kernel_size = 3,
+        self.convFaa = ai8x.FusedMaxPoolConv2dBNReLU(in_channels = c4, out_channels = c5, kernel_size = 3,
                                           padding=1, bias=bias, **kwargs)
         self.convFbb = ai8x.Conv2d(in_channels = c5, out_channels = n_features, kernel_size = 3,
                                     padding=1, bias=bias, **kwargs)
@@ -118,6 +109,5 @@ class ai84_keypointnet(nn.Module):
         feat = self.convFb(feat)
         feat = self.convFaa(feat)
         feat = self.convFbb(feat)
-        print(score.min())
-        print(score.max())
+
         return score, coord, feat

@@ -5,18 +5,19 @@
 #    + descriptor upsampling
 #    + cross-border keypoints
 #    + descriptor loss
-device: "cpu"
+
+arch:
+    epochs: 10
 
 model:
     params:
-        debug: True
-        device: cpu
         use_color: True
         with_io: True
         do_upsample: True
         do_cross: True
         descriptor_loss: True
-        keypoint_net_type: 'KeypointMAX'
+        debug: True
+        keypoint_net_type: "KeypointResnet"
 
 wandb:
     dry_run: True
@@ -29,21 +30,25 @@ datasets:
         r_max: 5.0
         patch_ratio: 0.7
         scaling_amplitude: 0.5
-        max_angle_div: 4
+        max_angle_div: 2
         super_resolution: 2
         preprocessing_gradient: True
         add_row_noise: True
         add_normal_noise: False
-        add_sparkle_noise: True
+        add_sparkle_noise: False
         add_artifact: True
         blur: True
         add_speckle_noise: False
-        normalize: False
+        normalize: True
+        amp: 70
+        artifact_amp: 200
+        image_shape: (256,256)
+
     train:
-        path: "/home/thomas/Downloads/SonarDataSets/Simulated"
+        path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"
         num_workers: 0
-        batch_size: 2
+        batch_size: 3
 
     val:
-        path: "/home/thomas/Downloads/SonarDataSets/Simulated"
+        path: "D:/MachineLearning/SonarData/SonarDataSets/SimEval"
 

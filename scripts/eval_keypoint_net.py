@@ -2,18 +2,10 @@
 # Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2d/v4.pth --input_dir /data/datasets/kp2d/HPatches/
 
 import argparse
-import os
-import pickle
-import random
-import subprocess
 
-import cv2
-import numpy as np
 import torch
-from PIL import Image
 from termcolor import colored
-from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm
+from torch.utils.data import DataLoader
 
 from kp2d.datasets.patches_dataset import PatchesDataset
 from kp2d.evaluation.evaluate import evaluate_keypoint_net
@@ -31,22 +23,21 @@ def main():
     checkpoint = torch.load(args.pretrained_model)
     model_args = checkpoint['config']['model']['params']
 
-    # Check model type
+    # Create and load keypoint net
     if 'keypoint_net_type' in checkpoint['config']['model']['params']:
-        net_type = checkpoint['config']['model']['params']
+        net_type = checkpoint['config']['model']['params']['keypoint_net_type']
     else:
-        net_type = KeypointNet # default when no type is specified
+        net_type = 'KeypointNet' # default when no type is specified
 
     # Create and load keypoint net
-    if net_type is KeypointNet:
+    if net_type == 'KeypointNet':
         keypoint_net = KeypointNet(use_color=model_args['use_color'],
                                 do_upsample=model_args['do_upsample'],
                                 do_cross=model_args['do_cross'])
-    else:
+    elif net_type == 'KeypointResnet':
         keypoint_net = KeypointResnet()
-    keypoint_net = KeypointNet(use_color=model_args['use_color'],
-                               do_upsample=model_args['do_upsample'],
-                               do_cross=model_args['do_cross'])
+    else:
+        raise KeyError ("net_type not recognized: " + str(net_type))
     keypoint_net.load_state_dict(checkpoint['state_dict'])
     keypoint_net = keypoint_net.cuda()
     keypoint_net.eval()

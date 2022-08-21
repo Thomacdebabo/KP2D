@@ -3,21 +3,18 @@
 import argparse
 import os
 from datetime import datetime
-import ai8x
-import numpy as np
+
 import torch
 import torch.optim as optim
-import torchvision.transforms as transforms
-from torch.utils.data import ConcatDataset, DataLoader
-from tqdm import tqdm
 
-from kp2d.datasets.patches_dataset import PatchesDataset
-from kp2d.evaluation.evaluate import evaluate_keypoint_net
+from tqdm import tqdm
+from torch.utils.data import DataLoader
+from kp2d.evaluation.evaluate import evaluate_keypoint_net_sonar
 from kp2d.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2d.utils.config import parse_train_file
 from kp2d.utils.logging import SummaryWriter, printcolor
 from train_keypoint_net_utils import (_set_seeds, sample_to_cuda,
-                                      setup_datasets_and_dataloaders)
+                                      setup_datasets_and_dataloaders, setup_datasets_and_dataloaders_eval, image_transforms)
 
 from kp2d.datasets.noise_model import NoiseUtility
 
@@ -62,14 +59,28 @@ def main(file):
 
     # Initialize horovod
     n_threads = int(os.environ.get("OMP_NUM_THREADS", 1))
-    torch.set_num_threads(n_threads)    
+    torch.set_num_threads(n_threads)
     torch.backends.cudnn.benchmark = True
-    # torch.backends.cudnn.deterministic = True
+
     noise_util = NoiseUtility(config.datasets.augmentation.image_shape,
                               fov=config.datasets.augmentation.fov,
                               r_min=config.datasets.augmentation.r_min,
                               r_max=config.datasets.augmentation.r_max,
-                              device='cpu')
+                              patch_ratio=config.datasets.augmentation.patch_ratio,
+                              scaling_amplitude=config.datasets.augmentation.scaling_amplitude,
+                              max_angle_div=config.datasets.augmentation.max_angle_div,
+                              super_resolution=config.datasets.augmentation.super_resolution,
+                              amp=config.datasets.augmentation.amp,
+                              artifact_amp=config.datasets.augmentation.artifact_amp,
+                              preprocessing_gradient=config.datasets.augmentation.preprocessing_gradient,
+                              add_row_noise=config.datasets.augmentation.add_row_noise,
+                              add_normal_noise=config.datasets.augmentation.add_normal_noise,
+                              add_artifact=config.datasets.augmentation.add_artifact,
+                              add_sparkle_noise=config.datasets.augmentation.add_sparkle_noise,
+                              blur=config.datasets.augmentation.blur,
+                              add_speckle_noise=config.datasets.augmentation.add_speckle_noise,
+                              normalize=config.datasets.augmentation.normalize,
+                              device="cpu") #unfortunately noise model does not work with cuda due to cuda reinitialization issue
     printcolor('-'*25 + 'SINGLE GPU ' + '-'*25, 'cyan')
     
     if config.arch.seed is not None:
@@ -102,24 +113,35 @@ def main(file):
         date_time = datetime.now().strftime("%m_%d_%Y__%H_%M_%S")
         date_time = model_submodule(model).__class__.__name__ + '_' + date_time
         config.model.checkpoint_path = os.path.join(config.model.checkpoint_path, date_time)
+    # added because when you run multiple jobs at once they sometimes overwrite each other
+    i_dir = 1
+    ending = ""
+    while os.path.isdir(config.model.checkpoint_path + ending ):
+        i_dir += 1
+        ending = "_" + str(i_dir)
+    config.model.checkpoint_path = config.model.checkpoint_path + ending
+
 
     print('Saving models at {}'.format(config.model.checkpoint_path))
+
     os.makedirs(config.model.checkpoint_path, exist_ok=True)
 
 
     # Initial evaluation
-    evaluation(config, 0, model, summary)
+    evaluation(config, 0, model, summary,noise_util)
     # Train
     for epoch in range(config.arch.epochs):
         # train for one epoch (only log if eval to have aligned steps...)
         printcolor("\n--------------------------------------------------------------")
         train(config, train_loader, model, optimizer, epoch, summary)
 
-        # Model checkpointing, eval, and logging
-        evaluation(config, epoch + 1, model, summary)
+        try:
+            evaluation(config, epoch + 1, model, summary,noise_util)
+        except:
+            print("Evaluation failed...")
     printcolor('Training complete, models saved in {}'.format(config.model.checkpoint_path), "green")
 
-def evaluation(config, completed_epoch, model, summary):
+def evaluation(config, completed_epoch, model, summary,noise_util):
     # Set to eval mode
     model.eval()
     model.training = False
@@ -127,9 +149,19 @@ def evaluation(config, completed_epoch, model, summary):
     use_color = config.model.params.use_color
 
     eval_shape = config.datasets.augmentation.image_shape[::-1]
-    eval_params = []#[{'res': eval_shape, 'top_k': 300}]
+    eval_params = [{'res': eval_shape, 'top_k': 300}]
     for params in eval_params:
-        hp_dataset = PatchesDataset(root_dir=config.datasets.val.path, use_color=use_color, output_shape=params['res'], type='a')
+        # hp_dataset = SonarSimLoader(root_dir=config.datasets.val.path, noise_util=noise_util,
+        #                             data_transform=image_transforms(noise_util, config.datasets)['train'])
+        #
+        # data_loader = DataLoader(hp_dataset,
+        #                         batch_size=1,
+        #                         pin_memory=False,
+        #                         shuffle=False,
+        #                         num_workers=8,
+        #                         worker_init_fn=None,
+        #                         sampler=None)
+        hp_dataset, data_loader = setup_datasets_and_dataloaders_eval(config.datasets, noise_util)
 
         data_loader = DataLoader(hp_dataset,
                                 batch_size=1,
@@ -141,8 +173,9 @@ def evaluation(config, completed_epoch, model, summary):
         print('Loaded {} image pairs '.format(len(data_loader)))
 
         printcolor('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']))
-        rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net(data_loader,
+        rep, loc, p_amt, c1, c5, c10, mscore, up, ap, md = evaluate_keypoint_net_sonar(data_loader,
                                                             model_submodule(model).keypoint_net,
+                                                             noise_util,
                                                             output_shape=params['res'],
                                                             top_k=params['top_k'],
                                                             use_color=use_color)
@@ -150,19 +183,24 @@ def evaluation(config, completed_epoch, model, summary):
             summary.add_scalar('repeatability_'+str(params['res']), rep)
             summary.add_scalar('localization_' + str(params['res']), loc)
             summary.add_scalar('correctness_'+str(params['res'])+'_'+str(1), c1)
-            summary.add_scalar('correctness_'+str(params['res'])+'_'+str(3), c3)
             summary.add_scalar('correctness_'+str(params['res'])+'_'+str(5), c5)
+            summary.add_scalar('correctness_'+str(params['res'])+'_'+str(10), c10)
             summary.add_scalar('mscore' + str(params['res']), mscore)
 
         print('Repeatability {0:.3f}'.format(rep))
         print('Localization Error {0:.3f}'.format(loc))
+        print('Amount of good points {0:.3f}'.format(p_amt))
         print('Correctness d1 {:.3f}'.format(c1))
-        print('Correctness d3 {:.3f}'.format(c3))
         print('Correctness d5 {:.3f}'.format(c5))
+        print('Correctness d10 {:.3f}'.format(c10))
         print('MScore {:.3f}'.format(mscore))
+        print('Useful points ratio  {:.3f}'.format(up))
+        print('Absolute amount of used points  {:.3f}'.format(ap))
+        print('Mean distance (debug) {:.3f}'.format(md))
 
     # Save checkpoint
     if config.model.save_checkpoint:
+        config['completed_epochs'] = completed_epoch
         current_model_path = os.path.join(config.model.checkpoint_path, 'model.ckpt')
         printcolor('\nSaving model (epoch:{}) at {}'.format(completed_epoch, current_model_path), 'green')
         torch.save(
@@ -236,6 +274,7 @@ def train(config, train_loader, model, optimizer, epoch, summary):
                     model(data_cuda, debug=True)
                     for k, v in model_submodule(model).vis.items():
                         summary.add_image(k, v)
+
 if __name__ == '__main__':
     args = parse_args()
     main(args.file)

@@ -59,10 +59,10 @@ def build_descriptor_loss(source_des, target_des, source_points, tar_points, tar
             tar_points_raw = tar_points_un[cur_ind][:, keypoint_mask_ind]
 
         # Compute dense descriptor distance matrix and find nearest neighbor
-        ref_desc = ref_desc.div(torch.norm(ref_desc+epsilon, p=2, dim=0))
-        tar_desc = tar_desc.div(torch.norm(tar_desc+epsilon, p=2, dim=0))
+        ref_desc = ref_desc.div(torch.norm(ref_desc+epsilon, p=2, dim=0)+epsilon)
+        tar_desc = tar_desc.div(torch.norm(tar_desc+epsilon, p=2, dim=0)+epsilon)
         dmat = torch.mm(ref_desc.t(), tar_desc)
-        dmat = torch.sqrt(2 - 2 * torch.clamp(dmat, min=-1, max=1))
+        dmat = torch.sqrt(2 - 2 * torch.clamp(dmat, min=-1, max=1)+epsilon)
 
         # Sort distance matrix
         dmat_sorted, idx = torch.sort(dmat, dim=1)
@@ -156,7 +156,7 @@ def calculate_distribution_wrapping(image_in):
         image_in[i, 1, :, :] = std_tensor.to(image_in.device)
     return image_in
 
-def warp_homography_batch(noise_util, sources, homographies, fov = 60, mode='sonar_sim'):
+def warp_homography_batch(noise_util, sources, homographies, mode='sonar_sim'):
     """Batch warp keypoints given homographies.
 
     Parameters
@@ -181,16 +181,16 @@ def warp_homography_batch(noise_util, sources, homographies, fov = 60, mode='son
 
             source = pol_2_cart(source.unsqueeze(0),
                                 noise_util.fov,
-                                r_min=noise_util.r_min,
-                                r_max=noise_util.r_max).squeeze(0)
+                                noise_util.r_min,
+                                noise_util.r_max).squeeze(0)
 
             source = torch.addmm(homographies[b,:,2], source, homographies[b,:,:2].t())
             source.mul_(1/source[:,2].unsqueeze(1))
 
             source = cart_2_pol(source.unsqueeze(0),
                                 noise_util.fov,
-                                r_min=noise_util.r_min,
-                                r_max=noise_util.r_max).squeeze(0)
+                                noise_util.r_min,
+                                noise_util.r_max).squeeze(0)
 
             source = source[:,:2].contiguous().view(H,W,2)
 
@@ -317,10 +317,6 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         input_img_aug = data['image_aug']/255.
         homography = data['homography']
 
-
-        #input_img = to_color_normalized(input_img.clone())
-        #input_img_aug = to_color_normalized(input_img_aug.clone())
-
         # Get network outputs
         source_score, source_uv_pred, source_feat = self.keypoint_net(input_img_aug)
         target_score, target_uv_pred, target_feat = self.keypoint_net(input_img)
@@ -381,8 +377,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
             loss_2d += self.keypoint_loss_weight * io_loss
             loss_dict['io_loss'] = io_loss
-        #print(loss_dict)
-        # if debug and torch.cuda.current_device() == 0:
+
         if debug or self.debug:
             # Generate visualization data
             vis_ori = (input_img[0].permute(1, 2, 0).detach().cpu().clone().squeeze() )
@@ -418,6 +413,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
             self.vis['img_ori'] = np.clip(vis_ori, 0, 255) / 255.
             self.vis['heatmap'] = np.clip(heatmap * 255, 0, 255) / 255.
             self.vis['aug'] = np.clip(vis_aug, 0, 255) / 255.
+
             cv2.imshow('org', self.vis['img_ori'])
             cv2.imshow('heatmap', self.vis['heatmap'])
             cv2.imshow('aug', self.vis['aug'])
@@ -428,6 +424,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
                          B, Hc, Wc, H, W,
                          source_uv_norm, target_uv_norm, source_uv_warped_norm,
                          device, epsilon = 1e-8):
+
         top_k_score1, top_k_indice1 = source_score.view(B, Hc * Wc).topk(self.top_k2, dim=1, largest=False)
         top_k_mask1 = torch.zeros(B, Hc * Wc).to(device)
         top_k_mask1.scatter_(1, top_k_indice1, value=1)
@@ -447,8 +444,8 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         target_feat_topk = torch.nn.functional.grid_sample(target_feat, target_uv_norm_topk.unsqueeze(1),
                                                            align_corners=True).squeeze()
 
-        source_feat_topk = source_feat_topk.div(torch.norm(source_feat_topk, p=2, dim=1).unsqueeze(1))
-        target_feat_topk = target_feat_topk.div(torch.norm(target_feat_topk, p=2, dim=1).unsqueeze(1))
+        source_feat_topk = source_feat_topk.div(torch.norm(source_feat_topk, p=2, dim=1).unsqueeze(1)+epsilon)
+        target_feat_topk = target_feat_topk.div(torch.norm(target_feat_topk, p=2, dim=1).unsqueeze(1)+epsilon)
 
         dmat = torch.bmm(source_feat_topk.permute(0, 2, 1), target_feat_topk)
         dmat = torch.sqrt(2 - 2 * torch.clamp(dmat, min=-1, max=1)+epsilon)

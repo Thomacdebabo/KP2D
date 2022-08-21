@@ -70,11 +70,25 @@ cfg.datasets = CN()
 ########################################################################################################################
 cfg.datasets.augmentation = CN()
 cfg.datasets.augmentation.image_shape = (512, 512)              # Image shape
-cfg.datasets.augmentation.jittering = (0.5, 0.5, 0.2, 0.05)     # Color jittering values
+cfg.datasets.augmentation.jittering = (0, 0, 0, 0)     # Color jittering values
 cfg.datasets.augmentation.fov = 60
 cfg.datasets.augmentation.r_min = 0.1
-cfg.datasets.augmentation.r_max = 5
+cfg.datasets.augmentation.r_max = 5.0
+cfg.datasets.augmentation.patch_ratio = 0.95
+cfg.datasets.augmentation.scaling_amplitude = 0.1
+cfg.datasets.augmentation.max_angle_div = 18
+cfg.datasets.augmentation.super_resolution = 1
+cfg.datasets.augmentation.amp = 70
+cfg.datasets.augmentation.artifact_amp = 200
 cfg.datasets.augmentation.mode = 'sonar_sim'
+cfg.datasets.augmentation.preprocessing_gradient = True
+cfg.datasets.augmentation.add_row_noise = True
+cfg.datasets.augmentation.add_normal_noise = False
+cfg.datasets.augmentation.add_artifact = True
+cfg.datasets.augmentation.add_sparkle_noise = False
+cfg.datasets.augmentation.blur = True
+cfg.datasets.augmentation.add_speckle_noise = False
+cfg.datasets.augmentation.normalize = True
 
 ########################################################################################################################
 ### DATASETS.TRAIN
