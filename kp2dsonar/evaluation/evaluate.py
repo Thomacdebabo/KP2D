@@ -11,11 +11,11 @@ from kp2dsonar.evaluation.descriptor_evaluation_sonar import (compute_homography
                                                               compute_matching_score_sonar)
 from kp2dsonar.evaluation.detector_evaluation_sonar import compute_repeatability_sonar
 from kp2dsonar.evaluation.detector_evaluation import compute_repeatability
-from kp2dsonar.utils.image import to_color_normalized, to_gray_normalized
+from kp2dsonar.utils.image import to_color_normalized_sonar, to_color_normalized, to_gray_normalized
 from kp2dsonar.datasets.noise_model import pol_2_cart, to_numpy
 #TODO: adjust evaluation to use polar/cart transforms
 
-def evaluate_keypoint_net(data_loader, keypoint_net,noise_util, output_shape=(320, 240), top_k=300, use_color=True):
+def evaluate_keypoint_net(data_loader, keypoint_net, output_shape=(320, 240), top_k=300, use_color=True):
     """Keypoint net evaluation script. 
 
     Parameters
@@ -40,12 +40,15 @@ def evaluate_keypoint_net(data_loader, keypoint_net,noise_util, output_shape=(32
 
     with torch.no_grad():
         for i, sample in tqdm(enumerate(data_loader), desc="evaluate_keypoint_net"):
-            if use_color:
-                image = to_color_normalized(sample['image'].cuda())
-                warped_image = to_color_normalized(sample['warped_image'].cuda())
-            else:
-                image = to_gray_normalized(sample['image'].cuda())
-                warped_image = to_gray_normalized(sample['warped_image'].cuda())
+            # if use_color:
+            #     image = to_color_normalized(sample['image'].to(keypoint_net.device))
+            #     warped_image = to_color_normalized(sample['image_aug'].to(keypoint_net.device))
+            # else:
+            #     image = to_gray_normalized(sample['image'].to(keypoint_net.device))
+            #     warped_image = to_gray_normalized(sample['image_aug'].to(keypoint_net.device))
+
+            image = sample['image'].to(keypoint_net.device)
+            warped_image = sample['image_aug'].to(keypoint_net.device)
 
             score_1, coord_1, desc1 = keypoint_net(image)
             score_2, coord_2, desc2 = keypoint_net(warped_image)
@@ -74,13 +77,13 @@ def evaluate_keypoint_net(data_loader, keypoint_net,noise_util, output_shape=(32
                     'warped_desc': desc2}
             
             # Compute repeatabilty and localization error
-            _, _, rep, loc_err = compute_repeatability(data,noise_util, keep_k_points=top_k, distance_thresh=3)
+            _, _, rep, loc_err = compute_repeatability(data, keep_k_points=top_k, distance_thresh=3)
             if (rep != -1) and (loc_err != -1):
                 repeatability.append(rep)
                 localization_err.append(loc_err)
 
             # Compute correctness
-            c1, c2, c3 = compute_homography(data,noise_util, keep_k_points=top_k)
+            c1, c2, c3 = compute_homography(data, keep_k_points=top_k)
             correctness1.append(c1)
             correctness3.append(c2)
             correctness5.append(c3)
@@ -120,8 +123,8 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
     with torch.no_grad():
         for i, sample in tqdm(enumerate(data_loader), desc="evaluate_keypoint_net"):
             if use_color:
-                image = to_color_normalized(sample['image']).to(device)
-                warped_image = to_color_normalized(sample['image_aug']).to(device)
+                image = to_color_normalized_sonar(sample['image']).to(device)
+                warped_image = to_color_normalized_sonar(sample['image_aug']).to(device)
             else:
                 image = to_gray_normalized(sample['image']).to(device)
                 warped_image = to_gray_normalized(sample['image_aug']).to(device)

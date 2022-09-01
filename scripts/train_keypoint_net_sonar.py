@@ -1,5 +1,5 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
-import warnings
+
 import argparse
 import os
 from datetime import datetime
@@ -9,13 +9,21 @@ import torch.optim as optim
 
 from tqdm import tqdm
 
-from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net
+from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net_sonar
 from kp2dsonar.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2dsonar.utils.config import parse_train_file
 from kp2dsonar.utils.logging import SummaryWriter, printcolor
 from train_keypoint_net_utils import (_set_seeds, sample_to_cuda,
-                                      setup_datasets_and_dataloaders, setup_datasets_and_dataloaders_eval, image_transforms)
+                                      setup_datasets_and_dataloaders_sonar, setup_datasets_and_dataloaders_eval_sonar, image_transforms)
+
+from kp2dsonar.datasets.noise_model import NoiseUtility
 #torch.autograd.set_detect_anomaly(True)
+
+def _print_result(result_dict):
+    for k in result_dict.keys():
+        print("%s: %.3f" %( k, result_dict[k]))
+
+
 def parse_args():
     """Parse arguments for training script"""
     parser = argparse.ArgumentParser(description='KP2D training script')
@@ -60,7 +68,25 @@ def main(file):
     torch.set_num_threads(n_threads)
     torch.backends.cudnn.benchmark = True
 
- #unfortunately noise model does not work with cuda due to cuda reinitialization issue
+    noise_util = NoiseUtility(config.datasets.augmentation.image_shape,
+                              fov=config.datasets.augmentation.fov,
+                              r_min=config.datasets.augmentation.r_min,
+                              r_max=config.datasets.augmentation.r_max,
+                              patch_ratio=config.datasets.augmentation.patch_ratio,
+                              scaling_amplitude=config.datasets.augmentation.scaling_amplitude,
+                              max_angle_div=config.datasets.augmentation.max_angle_div,
+                              super_resolution=config.datasets.augmentation.super_resolution,
+                              amp=config.datasets.augmentation.amp,
+                              artifact_amp=config.datasets.augmentation.artifact_amp,
+                              preprocessing_gradient=config.datasets.augmentation.preprocessing_gradient,
+                              add_row_noise=config.datasets.augmentation.add_row_noise,
+                              add_normal_noise=config.datasets.augmentation.add_normal_noise,
+                              add_artifact=config.datasets.augmentation.add_artifact,
+                              add_sparkle_noise=config.datasets.augmentation.add_sparkle_noise,
+                              blur=config.datasets.augmentation.blur,
+                              add_speckle_noise=config.datasets.augmentation.add_speckle_noise,
+                              normalize=config.datasets.augmentation.normalize,
+                              device="cpu") #unfortunately noise model does not work with cuda due to cuda reinitialization issue
     printcolor('-'*25 + 'SINGLE GPU ' + '-'*25, 'cyan')
     
     if config.arch.seed is not None:
@@ -70,10 +96,8 @@ def main(file):
     printcolor(config.model.params, 'red')
 
     # Setup model and datasets/dataloaders
-    if config.datasets.augmentation.mode == "sonar_sim":
-        warnings.warn('Sonar Simulator mode cannot be used in this script. Please use train_keypoint_net_sonar instead. default will be used instead.')
-    model = KeypointNetwithIOLoss(mode='default',**config.model.params)
-    train_dataset, train_loader = setup_datasets_and_dataloaders(config.datasets)
+    model = KeypointNetwithIOLoss(noise_util, mode=config.datasets.augmentation.mode,**config.model.params)
+    train_dataset, train_loader = setup_datasets_and_dataloaders_sonar(config.datasets, noise_util)
     printcolor('({}) length: {}'.format("Train", len(train_dataset)))
 
     optimizer = optim.Adam(model.optim_params)
@@ -110,7 +134,7 @@ def main(file):
 
 
     # Initial evaluation
-    evaluation(config, 0, model, summary) #TODO uncomment
+    evaluation(config, 0, model, summary,noise_util)
     # Train
     for epoch in range(config.arch.epochs):
         # train for one epoch (only log if eval to have aligned steps...)
@@ -118,12 +142,12 @@ def main(file):
         train(config, train_loader, model, optimizer, epoch, summary)
 
         try:
-            evaluation(config, epoch + 1, model, summary)
+            evaluation(config, epoch + 1, model, summary,noise_util)
         except:
             print("Evaluation failed...")
     printcolor('Training complete, models saved in {}'.format(config.model.checkpoint_path), "green")
 
-def evaluation(config, completed_epoch, model, summary):
+def evaluation(config, completed_epoch, model, summary,noise_util):
     # Set to eval mode
     model.eval()
     model.training = False
@@ -143,30 +167,29 @@ def evaluation(config, completed_epoch, model, summary):
         #                         num_workers=8,
         #                         worker_init_fn=None,
         #                         sampler=None)
-        hp_dataset, data_loader = setup_datasets_and_dataloaders_eval(config.datasets)
+        hp_dataset, data_loader = setup_datasets_and_dataloaders_eval_sonar(config.datasets, noise_util)
 
         print('Loaded {} image pairs '.format(len(data_loader)))
 
         printcolor('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']))
-        rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net(data_loader,
+        result_dict = evaluate_keypoint_net_sonar(data_loader,
                                                             model_submodule(model).keypoint_net,
+                                                             noise_util,
                                                             output_shape=params['res'],
                                                             top_k=params['top_k'],
                                                             use_color=use_color)
-        if summary:
-            summary.add_scalar('repeatability_' + str(params['res']), rep)
-            summary.add_scalar('localization_' + str(params['res']), loc)
-            summary.add_scalar('correctness_' + str(params['res']) + '_' + str(1), c1)
-            summary.add_scalar('correctness_' + str(params['res']) + '_' + str(3), c3)
-            summary.add_scalar('correctness_' + str(params['res']) + '_' + str(5), c5)
-            summary.add_scalar('mscore' + str(params['res']), mscore)
 
-        print('Repeatability {0:.3f}'.format(rep))
-        print('Localization Error {0:.3f}'.format(loc))
-        print('Correctness d1 {:.3f}'.format(c1))
-        print('Correctness d3 {:.3f}'.format(c3))
-        print('Correctness d5 {:.3f}'.format(c5))
-        print('MScore {:.3f}'.format(mscore))
+
+        if summary:
+            summary.add_scalar('repeatability_'+str(params['res']), result_dict['Repeatability'])
+            summary.add_scalar('localization_' + str(params['res']), result_dict['Localization Error'])
+            summary.add_scalar('correctness_'+str(params['res'])+'_'+str(1), result_dict['Correctness d1'])
+            summary.add_scalar('correctness_'+str(params['res'])+'_'+str(5), result_dict['Correctness d5'])
+            summary.add_scalar('correctness_'+str(params['res'])+'_'+str(10), result_dict['Correctness d10'])
+            summary.add_scalar('mscore' + str(params['res']), result_dict['MScore'])
+
+        _print_result(result_dict)
+
 
     # Save checkpoint
     if config.model.save_checkpoint:

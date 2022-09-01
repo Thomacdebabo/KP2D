@@ -85,7 +85,7 @@ class PatchesDataset(Dataset):
 
         warped_image = _read_image(self.files['warped_image_paths'][idx])
         homography = np.array(self.files['homography'][idx])
-        sample = {'image': image, 'warped_image': warped_image, 'homography': homography, 'index' : idx}
+        sample = {'image': image, 'image_aug': warped_image, 'homography': homography, 'index' : idx}
 
         # Apply transformations
         if self.output_shape is not None:
@@ -94,16 +94,16 @@ class PatchesDataset(Dataset):
                                                          self.output_shape,
                                                          pre=False)
             sample['homography'] = self.scale_homography(sample['homography'],
-                                                         sample['warped_image'].shape[:2][::-1],
+                                                         sample['image_aug'].shape[:2][::-1],
                                                          self.output_shape,
                                                          pre=True)
 
-            for key in ['image', 'warped_image']:
+            for key in ['image', 'image_aug']:
                 sample[key] = cv2.resize(sample[key], self.output_shape)
                 if self.use_color is False:
                     sample[key] = np.expand_dims(sample[key], axis=2)
 
         transform = transforms.ToTensor()
-        for key in ['image', 'warped_image']:
+        for key in ['image', 'image_aug']:
             sample[key] = transform(sample[key]).type('torch.FloatTensor')
         return sample

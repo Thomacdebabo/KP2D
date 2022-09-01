@@ -172,7 +172,7 @@ def warp_homography_batch(noise_util, sources, homographies, mode='sonar_sim'):
     """
     B, H, W, _ = sources.shape
     warped_sources = []
-    if mode == 'sonar_sim':
+    if mode == 'sonar_sim' and noise_util:
         for b in range(B):
 
             source = sources[b].clone()
@@ -236,7 +236,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         Extra parameters
     """
     def __init__(
-        self, noise_util, keypoint_loss_weight=1.0, descriptor_loss_weight=2.0, score_loss_weight=1.0,
+        self, noise_util=None, keypoint_loss_weight=1.0, descriptor_loss_weight=2.0, score_loss_weight=1.0,
         keypoint_net_learning_rate=0.001, with_io=True, use_color=True, do_upsample=True, 
         do_cross=True, descriptor_loss=True, with_drop=True, keypoint_net_type='KeypointNet',device='cpu', mode = 'sonar_sim', debug = 'False', **kwargs):
 
@@ -261,9 +261,9 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
         # Initialize KeypointNet
         if keypoint_net_type == 'KeypointNet':
-            self.keypoint_net = KeypointNet(use_color=use_color, do_upsample=do_upsample, with_drop=with_drop, do_cross=do_cross)
+            self.keypoint_net = KeypointNet(use_color=use_color, do_upsample=do_upsample, with_drop=with_drop, do_cross=do_cross, device = self.device)
         elif keypoint_net_type == 'KeypointResnet':
-            self.keypoint_net = KeypointResnet(with_drop=with_drop)
+            self.keypoint_net = KeypointResnet(with_drop=with_drop, device = self.device)
         else:
             raise NotImplemented('Keypoint net type not supported {}'.format(keypoint_net_type))
         self.keypoint_net = self.keypoint_net.to(self.device)
@@ -286,7 +286,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
             {'name': name, 'lr': lr, 'original_lr': lr,
              'params': filter(lambda p: p.requires_grad, params)})
 
-    def forward(self, data, debug = False):
+    def forward(self, data, debug = True):
         """
         Processes a batch.
 

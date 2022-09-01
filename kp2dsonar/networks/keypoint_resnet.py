@@ -149,10 +149,10 @@ class KeypointDecoder(nn.Module):
         return self.outputs
 
 class KeypointResnet(nn.Module):
-    def __init__(self, with_drop=True):
+    def __init__(self, with_drop=True, device = 'cuda'):
         super().__init__()
         print('Instantiating keypoint resnet')
-
+        self.device = device
         pretrained = True
         self.encoderK = KeypointEncoder(pretrained=pretrained, with_drop=True)
         self.decoderK = KeypointDecoder()

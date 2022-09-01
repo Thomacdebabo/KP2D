@@ -12,6 +12,7 @@ from kp2dsonar.datasets.augmentations import (ha_augment_sample, resize_sample,
                                               spatial_augment_sample,
                                               to_tensor_sample, to_tensor_sonar_sample)
 from kp2dsonar.datasets.coco import COCOLoader
+from kp2dsonar.datasets.patches_dataset import PatchesDataset
 from kp2dsonar.datasets.sonarsim import SonarSimLoader
 
 #TODO: remove
@@ -33,7 +34,7 @@ def sample_to_cuda(data):
 
 def image_transforms(noise_util, config):
     mode = config.augmentation.mode
-    if mode=='sonar_sim':
+    if mode=='sonar_sim' and noise_util:
         def train_transforms(sample):
             # sample = resize_sample(sample, image_shape=config.augmentation.image_shape)
 
@@ -59,7 +60,7 @@ def image_transforms(noise_util, config):
             sample = to_tensor_sonar_sample(sample)
 
             return sample
-    elif mode=='default':
+    else:
         def train_transforms(sample):
             sample = resize_sample(sample, image_shape=config.augmentation.image_shape)
             sample = spatial_augment_sample(sample)
@@ -82,7 +83,27 @@ def _set_seeds(seed=42):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-def setup_datasets_and_dataloaders(config,noise_util):
+def setup_datasets_and_dataloaders(config):
+    """Prepare datasets for training, validation and test."""
+    def _worker_init_fn(worker_id):
+        """Worker init fn to fix the seed of the workers"""
+        _set_seeds(42 + worker_id)
+
+    data_transforms = image_transforms(None, config)
+    train_dataset = COCOLoader(config.train.path, data_transform=data_transforms['train'])
+    # Concatenate dataset to produce a larger one
+    if config.train.repeat > 1:
+        train_dataset = ConcatDataset([train_dataset for _ in range(config.train.repeat)])
+
+    train_loader = DataLoader(train_dataset,
+                              batch_size=config.train.batch_size,
+                              pin_memory=True,
+                              num_workers=config.train.num_workers,
+                              worker_init_fn=_worker_init_fn,
+                              sampler=None)
+    return train_dataset, train_loader
+
+def setup_datasets_and_dataloaders_sonar(config,noise_util):
     """Prepare datasets for training, validation and test."""
     def _worker_init_fn(worker_id):
         """Worker init fn to fix the seed of the workers"""
@@ -108,7 +129,23 @@ def setup_datasets_and_dataloaders(config,noise_util):
                               drop_last=True)
     return train_dataset, train_loader
 
-def setup_datasets_and_dataloaders_eval(config,noise_util):
+def setup_datasets_and_dataloaders_eval(config):
+    """Prepare datasets for training, validation and test."""
+
+    data_transforms = image_transforms(None,config)
+    hp_dataset = PatchesDataset(root_dir=config.val.path, use_color=True, output_shape=config.augmentation.image_shape,
+                                type='a')
+
+    data_loader = DataLoader(hp_dataset,
+                             batch_size=1,
+                             pin_memory=False,
+                             shuffle=False,
+                             num_workers=8,
+                             worker_init_fn=None,
+                             sampler=None)
+    return hp_dataset, data_loader
+
+def setup_datasets_and_dataloaders_eval_sonar(config,noise_util):
     """Prepare datasets for training, validation and test."""
     def _worker_init_fn(worker_id):
         """Worker init fn to fix the seed of the workers"""

@@ -14,7 +14,6 @@ from kp2dsonar.utils.keypoints import warp_keypoints
 def select_k_best(points, descriptors, k):
     """ Select the k most probable points (and strip their probability).
     points has shape (num_points, 3) where the last coordinate is the probability.
-
     Parameters
     ----------
     points: numpy.ndarray (N,3)
@@ -57,7 +56,6 @@ def keep_shared_points(keypoints, descriptors, H, shape, keep_k_points=1000):
         Image shape.
     keep_k_points: int
         Number of keypoints to select, based on probability.
-
     Returns
     -------
     selected_points: numpy.ndarray (k,2)
@@ -100,7 +98,6 @@ def compute_matching_score(data, keep_k_points=1000):
             Warped keypoint descriptors.
     keep_k_points: int
         Number of keypoints to select, based on probability.
-
     Returns
     -------
     ms: float
@@ -123,11 +120,15 @@ def compute_matching_score(data, keep_k_points=1000):
     # Match the keypoints with the warped_keypoints with nearest neighbor search
     # This part needs to be done with crossCheck=False.
     # All the matched pairs need to be evaluated without any selection.
+
     bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
 
     matches = bf.match(desc, warped_desc)
+    if not matches:
+        return 0
     matches_idx = np.array([m.queryIdx for m in matches])
     m_keypoints = keypoints[matches_idx, :]
+
     matches_idx = np.array([m.trainIdx for m in matches])
     m_warped_keypoints = warped_keypoints[matches_idx, :]
 
@@ -162,7 +163,6 @@ def compute_homography(data, keep_k_points=1000):
     """
     Compute the homography between 2 sets of Keypoints and descriptors inside data.
     Use the homography to compute the correctness metrics (1,3,5).
-
     Parameters
     ----------
     data: dict
@@ -181,7 +181,6 @@ def compute_homography(data, keep_k_points=1000):
             Warped keypoint descriptors.
     keep_k_points: int
         Number of keypoints to select, based on probability.
-
     Returns
     -------
     correctness1: float
@@ -204,17 +203,17 @@ def compute_homography(data, keep_k_points=1000):
     keypoints, desc = keep_shared_points(keypoints, desc, real_H, shape, keep_k_points)
     warped_keypoints, warped_desc = keep_shared_points(warped_keypoints, warped_desc, np.linalg.inv(real_H), shape,
                                                        keep_k_points)
-
-    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
-    matches = bf.match(desc, warped_desc)
-    matches_idx = np.array([m.queryIdx for m in matches])
     try:
+        bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+        matches = bf.match(desc, warped_desc)
+        matches_idx = np.array([m.queryIdx for m in matches])
         m_keypoints = keypoints[matches_idx, :]
     except:
-        print(matches_idx)
         return 0, 0, 0
+
     matches_idx = np.array([m.trainIdx for m in matches])
     m_warped_keypoints = warped_keypoints[matches_idx, :]
+
 
     if m_keypoints.shape[0] < 4 or m_warped_keypoints.shape[0] < 4:
         return 0, 0, 0
