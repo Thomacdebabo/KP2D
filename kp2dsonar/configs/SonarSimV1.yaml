@@ -1,0 +1,43 @@
+# Copyright 2020 Toyota Research Institute.  All rights reserved.
+
+# Config for training the v4 model:
+#    + IONet
+#    + descriptor upsampling
+#    + cross-border keypoints
+#    + descriptor loss
+
+arch:
+    epochs: 10
+
+model:
+    params:
+        use_color: True
+        with_io: True
+        do_upsample: True
+        do_cross: True
+        descriptor_loss: True
+        debug: True
+        keypoint_net_type: 'KeypointMAX'
+
+wandb:
+    dry_run: True
+    project: ""
+datasets:
+    augmentation:
+        mode: 'sonar_sim'
+        fov: 60
+        r_min: 0.1
+        r_max: 5.0
+        patch_ratio: 0.8
+        scaling_amplitude: 0.15
+        max_angle_div: 4
+        super_resolution: 1
+
+    train:
+        path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"
+        num_workers: 0
+        batch_size: 3
+
+    val:
+        path: "D:/PycharmProjects/KP2D/data/datasets/kp2dsonar/HPatches"
+

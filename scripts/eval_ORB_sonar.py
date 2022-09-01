@@ -1,5 +1,5 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
-# Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2d/v4.pth --input_dir /data/datasets/kp2d/HPatches/
+# Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2dsonar/v4.pth --input_dir /data/datasets/kp2dsonar/HPatches/
 
 import argparse
 
@@ -10,13 +10,13 @@ from datetime import datetime
 from termcolor import colored
 from torch.utils.data import DataLoader
 
-from kp2d.datasets.sonarsim import SonarSimLoader
-from kp2d.evaluation.evaluate import evaluate_ORB_sonar
+from kp2dsonar.datasets.sonarsim import SonarSimLoader
+from kp2dsonar.evaluation.evaluate import evaluate_ORB_sonar
 
-from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
-                                         spatial_augment_sample,
-                                         to_tensor_sample,to_tensor_sonar_sample)
-from kp2d.datasets.noise_model import NoiseUtility
+from kp2dsonar.datasets.augmentations import (ha_augment_sample, resize_sample,
+                                              spatial_augment_sample,
+                                              to_tensor_sample, to_tensor_sonar_sample)
+from kp2dsonar.datasets.noise_model import NoiseUtility
 import cv2
 def _print_result(result_dict):
     for k in result_dict.keys():
@@ -48,7 +48,7 @@ def main():
 
     args = parser.parse_args()
     top_k = 1500
-    res = 512
+    res = 1024
 
     eval_params = [
         {'name': 'V6 V4_A4 config',
@@ -141,24 +141,7 @@ def main():
                      'patch_ratio': 0.8,
                      'scaling_amplitude': 0.2,
                      'max_angle_div': 4}]
-    eval_params = [{'name': 'all the noise',
-                     'res': (res, res),
-                     'top_k': top_k,
-                     'fov': 60,
-                     'r_min': 0.1,
-                     'r_max': 5.0,
-                     'super_resolution': 1,
-                     'normalize': True,
-                     'preprocessing_gradient': True,
-                     'add_row_noise': True,
-                     'add_artifact': True,
-                     'add_sparkle_noise': True,
-                     'add_normal_noise': False,
-                     'add_speckle_noise': True,
-                     'blur': True,
-                     'patch_ratio': 0.8,
-                     'scaling_amplitude': 0.2,
-                     'max_angle_div': 4}]
+
     evaluation_results = {}
 
     detector = cv2.ORB_create(nfeatures=300,

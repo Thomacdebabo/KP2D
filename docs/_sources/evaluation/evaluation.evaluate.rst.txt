@@ -1,7 +1,0 @@
-evaluate
-========
-
-.. automodule:: kp2d.evaluation.evaluate
-   :members:
-   :undoc-members:
-   :show-inheritance:

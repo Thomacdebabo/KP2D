@@ -1,11 +1,11 @@
 import torch
-from kp2d.networks.keypoint_net import KeypointNet
+from kp2dsonar.networks.keypoint_net import KeypointNet
 import cv2
 import numpy as np
-import kp2d.datasets.augmentations as aug
-from kp2d.utils.keypoints import draw_keypoints,  warp_keypoints
+import kp2dsonar.datasets.augmentations as aug
+from kp2dsonar.utils.keypoints import draw_keypoints,  warp_keypoints
 import glob
-import kp2d.utils.tt_image as tt
+import kp2dsonar.utils.tt_image as tt
 
 model_path = r"C:\\Users\\Dr. Paul von Immel\\Downloads\\sonar_sim_noise/7.ckpt"
 picture_path = r"D:\MachineLearning\SonarData\SonarDataSets\Real\FoldingChair3m\frame0029.jpg"

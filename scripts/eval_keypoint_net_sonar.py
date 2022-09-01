@@ -1,5 +1,4 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
-# Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2d/v4.pth --input_dir /data/datasets/kp2d/HPatches/
 
 import argparse
 
@@ -11,12 +10,13 @@ from datetime import datetime
 from termcolor import colored
 from torch.utils.data import DataLoader
 
-from kp2d.datasets.sonarsim import SonarSimLoader
-from kp2d.evaluation.evaluate import evaluate_keypoint_net_sonar
-from kp2d.networks.keypoint_net import KeypointNet
-from kp2d.networks.keypoint_resnet import KeypointResnet
-from kp2d.datasets.augmentations import to_tensor_sonar_sample, resize_sample
-from kp2d.datasets.noise_model import NoiseUtility
+from kp2dsonar.datasets.sonarsim import SonarSimLoader
+from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net_sonar
+from kp2dsonar.networks.keypoint_net import KeypointNet
+from kp2dsonar.networks.keypoint_resnet import KeypointResnet
+from kp2dsonar.datasets.augmentations import to_tensor_sonar_sample, resize_sample
+from kp2dsonar.datasets.noise_model import NoiseUtility
+import glob
 
 def _print_result(result_dict):
     for k in result_dict.keys():
@@ -50,6 +50,100 @@ def _load_model(model_path, device):
 
     return keypoint_net, checkpoint['config']
 
+def _get_eval_params(res, top_k):
+    return [
+        {'name': 'V6 V4_A4 config',
+         'res': res,
+         'top_k': top_k,
+         'fov': 60,
+         'r_min': 0.1,
+         'r_max': 5.0,
+         'super_resolution': 1,
+         'normalize': True,
+         'preprocessing_gradient': True,
+         'add_row_noise': True,
+         'add_artifact': True,
+         'add_sparkle_noise': False,
+         'add_normal_noise': False,
+         'add_speckle_noise': False,
+         'blur': True,
+         'patch_ratio': 0.8,
+         'scaling_amplitude': 0.2,
+         'max_angle_div': 12},
+        {'name': 'V5 config',
+         'res': res,
+         'top_k': top_k,
+         'fov': 60,
+         'r_min': 0.1,
+         'r_max': 5.0,
+         'super_resolution': 1,
+         'normalize': True,
+         'preprocessing_gradient': True,
+         'add_row_noise': True,
+         'add_artifact': True,
+         'add_sparkle_noise': True,
+         'add_normal_noise': False,
+         'add_speckle_noise': False,
+         'blur': True,
+         'patch_ratio': 0.8,
+         'scaling_amplitude': 0.2,
+         'max_angle_div': 12},  # decided to not copy these values due to it being not very good at evaluating if big
+        {'name': 'only row noise',
+         'res': res,
+         'top_k': top_k,
+         'fov': 60,
+         'r_min': 0.1,
+         'r_max': 5.0,
+         'super_resolution': 1,
+         'normalize': False,
+         'preprocessing_gradient': False,
+         'add_row_noise': True,
+         'add_artifact': False,
+         'add_sparkle_noise': False,
+         'add_normal_noise': False,
+         'add_speckle_noise': False,
+         'blur': False,
+         'patch_ratio': 0.8,
+         'scaling_amplitude': 0.2,
+         'max_angle_div': 12},
+        {'name': 'no noise at all',
+         'res': res,
+         'top_k': top_k,
+         'fov': 60,
+         'r_min': 0.1,
+         'r_max': 5.0,
+         'super_resolution': 1,
+         'normalize': False,
+         'preprocessing_gradient': False,
+         'add_row_noise': False,
+         'add_artifact': False,
+         'add_sparkle_noise': False,
+         'add_normal_noise': False,
+         'add_speckle_noise': False,
+         'blur': False,
+         'patch_ratio': 0.8,
+         'scaling_amplitude': 0.2,
+         'max_angle_div': 4},
+        {'name': 'all the noise',
+         'res': res,
+         'top_k': top_k,
+         'fov': 60,
+         'r_min': 0.1,
+         'r_max': 5.0,
+         'super_resolution': 1,
+         'normalize': True,
+         'preprocessing_gradient': True,
+         'add_row_noise': True,
+         'add_artifact': True,
+         'add_sparkle_noise': True,
+         'add_normal_noise': False,
+         'add_speckle_noise': True,
+         'blur': True,
+         'patch_ratio': 0.8,
+         'scaling_amplitude': 0.2,
+         'max_angle_div': 4}
+    ]
+
 def image_transforms(noise_util):
     def train_transforms(sample):
         sample = resize_sample(sample, image_shape=noise_util.shape)
@@ -74,114 +168,25 @@ def main():
         description='Script for KeyPointNet testing',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
+    parser.add_argument("--model_dir", required=False, type=str, help="Directory with models which will get evaluated", default='..\data\models\kp2dsonar')
     parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cpu')
+    parser.add_argument("--top_k", required=False, type=int, help="top-k value", default=1500)
+    parser.add_argument("--conf_threshold", required=False, type=float, help="Score threshold for keypoint detection", default=0.9)
+    parser.add_argument("--debug", required=False, type=bool, help="toggle debug plots", default=False)
+    parser.add_argument("--res", required=False, type=int, help="resolution in x direction", default=512)
 
+    #Configuration - default: runs over all models found in ..\data\models\kp2dsonar
     args = parser.parse_args()
+    model_paths = glob.glob(os.path.join(args.model_dir,"*.ckpt"))
+    top_k = args.top_k
+    res = (args.res, args.res) #only square pics allowed at this point... Might cause problems with resnet if not square
+    conf_threshold = args.conf_threshold
+    debug = args.debug
 
-    model_paths = [r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V4_A4.ckpt",
-                   r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V_6.ckpt",
-                   r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\V_5.ckpt",
-                   r"C:\Users\Dr. Paul von Immel\Downloads\sonar_sim_noise\row.ckpt",
-                   r"D:\PycharmProjects\KP2D\data\models\kp2d\v4.ckpt"]
+    print("Running evaluation on:")
+    print(model_paths)
 
-    top_k = 1500
-    res = 1024
-    conf_threshold = 0.9
-    debug = False
-
-    eval_params = [
-        {'name': 'V6 V4_A4 config',
-         'res': (res, res),
-         'top_k': top_k,
-         'fov': 60,
-         'r_min': 0.1,
-         'r_max': 5.0,
-         'super_resolution': 1,
-         'normalize': True,
-         'preprocessing_gradient': True,
-         'add_row_noise': True,
-         'add_artifact': True,
-         'add_sparkle_noise': False,
-         'add_normal_noise': False,
-         'add_speckle_noise': False,
-         'blur': True,
-         'patch_ratio': 0.8,
-         'scaling_amplitude': 0.2,
-         'max_angle_div': 12},
-        {'name': 'V5 config',
-         'res': (res, res),
-         'top_k': top_k,
-         'fov': 60,
-         'r_min': 0.1,
-         'r_max': 5.0,
-         'super_resolution': 1,
-         'normalize': True,
-         'preprocessing_gradient': True,
-         'add_row_noise': True,
-         'add_artifact': True,
-         'add_sparkle_noise': True,
-         'add_normal_noise': False,
-         'add_speckle_noise': False,
-         'blur': True,
-         'patch_ratio': 0.8,
-         'scaling_amplitude': 0.2,
-         'max_angle_div': 12},  # decided to not copy these values due to it being not very good at evaluating if big
-        {'name': 'only row noise',
-         'res': (res, res),
-         'top_k': top_k,
-         'fov': 60,
-         'r_min': 0.1,
-         'r_max': 5.0,
-         'super_resolution': 1,
-         'normalize': False,
-         'preprocessing_gradient': False,
-         'add_row_noise': True,
-         'add_artifact': False,
-         'add_sparkle_noise': False,
-         'add_normal_noise': False,
-         'add_speckle_noise': False,
-         'blur': False,
-         'patch_ratio': 0.8,
-         'scaling_amplitude': 0.2,
-         'max_angle_div': 12},
-        {'name': 'no noise at all',
-         'res': (res, res),
-         'top_k': top_k,
-         'fov': 60,
-         'r_min': 0.1,
-         'r_max': 5.0,
-         'super_resolution': 1,
-         'normalize': False,
-         'preprocessing_gradient': False,
-         'add_row_noise': False,
-         'add_artifact': False,
-         'add_sparkle_noise': False,
-         'add_normal_noise': False,
-         'add_speckle_noise': False,
-         'blur': False,
-         'patch_ratio': 0.8,
-         'scaling_amplitude': 0.2,
-         'max_angle_div': 4},
-        {'name': 'all the noise',
-         'res': (res, res),
-         'top_k': top_k,
-         'fov': 60,
-         'r_min': 0.1,
-         'r_max': 5.0,
-         'super_resolution': 1,
-         'normalize': True,
-         'preprocessing_gradient': True,
-         'add_row_noise': True,
-         'add_artifact': True,
-         'add_sparkle_noise': True,
-         'add_normal_noise': False,
-         'add_speckle_noise': True,
-         'blur': True,
-         'patch_ratio': 0.8,
-         'scaling_amplitude': 0.2,
-         'max_angle_div': 4}
-    ]
-
+    eval_params = _get_eval_params(res, top_k)
     evaluation_results = {}
 
     for model_path in model_paths:
@@ -242,10 +247,10 @@ def main():
         evaluation_results[model_name] = {'model_config': config,
                                           'evaluation': results}
 
-    evaluation_results['eval_params'] = eval_params
+        evaluation_results['eval_params'] = eval_params
 
-    dt = datetime.now().strftime("_%d_%m_%Y__%H_%M_%S")
-    pth = os.path.join('../data/eval', dt + "_eval_result.json")
+        #dt = datetime.now().strftime("_%d_%m_%Y__%H_%M_%S")
+        pth = os.path.join('../data/eval', model_name + "_eval_result.json")
 
     with open(pth, "w") as f:
         json.dump(evaluation_results, f, indent=4, separators=(", ", ": "))
