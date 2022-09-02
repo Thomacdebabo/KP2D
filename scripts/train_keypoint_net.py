@@ -94,7 +94,7 @@ def main(file):
         summary = None
         date_time = datetime.now().strftime("%m_%d_%Y__%H_%M_%S")
         date_time = model_submodule(model).__class__.__name__ + '_' + date_time
-        config.model.checkpoint_path = os.path.join(config.model.checkpoint_path, date_time)
+        config.model.checkpoint_path = os.path.join(config.model.checkpoint_path, config.model.params.keypoint_net_type + "_" + date_time)
     # added because when you run multiple jobs at once they sometimes overwrite each other
     i_dir = 1
     ending = ""
