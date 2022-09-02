@@ -8,7 +8,7 @@
 
 model:
     params:
-        debug: True
+        debug: False
         use_color: True
         with_io: True
         do_upsample: True
@@ -23,7 +23,7 @@ datasets:
         mode: 'default'
         jittering: (0.5, 0.5, 0.2, 0.05)
     train:
-        path: "D:/MachineLearning/Coco/train_debug"
+        path: '../../../scratch/rueeggth/dataset/coco/train2017'
     val:
-        path: "D:/PycharmProjects/KP2D/data/datasets/kp2d/HPatches"
+        path: "../../../scratch/rueeggth/dataset/HPatches"
 
