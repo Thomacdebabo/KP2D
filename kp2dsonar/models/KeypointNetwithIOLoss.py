@@ -9,6 +9,7 @@ from matplotlib.cm import get_cmap
 from kp2dsonar.networks.inlier_net import InlierNet
 from kp2dsonar.networks.keypoint_net import KeypointNet
 from kp2dsonar.networks.keypoint_resnet import KeypointResnet
+from kp2dsonar.networks.ai84_keypointnet import ai84_keypointnet
 from kp2dsonar.utils.keypoints import draw_keypoints
 from kp2dsonar.datasets.noise_model import pol_2_cart, cart_2_pol
 
@@ -265,7 +266,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         elif keypoint_net_type == 'KeypointResnet':
             self.keypoint_net = KeypointResnet(with_drop=with_drop, device = self.device)
         elif keypoint_net_type == 'KeypointMAX':
-            self.keypoint_net = ai84_keypointnet()
+            self.keypoint_net = ai84_keypointnet( device = self.device)
         else:
             raise NotImplemented('Keypoint net type not supported {}'.format(keypoint_net_type))
         self.keypoint_net = self.keypoint_net.to(self.device)

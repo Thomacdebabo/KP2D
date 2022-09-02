@@ -2,7 +2,7 @@ from torch import nn
 import torch
 import ai8x
 
-from kp2d.utils.image import image_grid
+from kp2dsonar.utils.image import image_grid
 
 """
 Network description class
@@ -11,9 +11,10 @@ class ai84_keypointnet(nn.Module):
     """
     7-Layer CNN - Lightweight image classification
     """
-    def __init__(self, n_features=64, dimensions=(512, 512), num_channels=3, bias=True, **kwargs):
+    def __init__(self, n_features=64, dimensions=(512, 512), num_channels=3, bias=True, device = "cuda", **kwargs):
         super().__init__()
         ai8x.set_device(84, None, False)
+        self.device = device
         # assert dimensions[0] == dimensions[1]  # Only square supported
 
         # Keep track of image dimensions so one constructor works for all image sizes
