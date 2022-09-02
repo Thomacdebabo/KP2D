@@ -21,6 +21,7 @@ wandb:
 datasets:
     augmentation:
         mode: 'default'
+        jittering: (0.5, 0.5, 0.2, 0.05)
     train:
         path: '../../../scratch/rueeggth/dataset/coco/train2017'
     val:
