@@ -14,6 +14,7 @@ model:
         do_upsample: True
         do_cross: True
         descriptor_loss: True
+    checkpoint_path: '../../../scratch/rueeggth/kp2dsonar'
 
 wandb:
     dry_run: True

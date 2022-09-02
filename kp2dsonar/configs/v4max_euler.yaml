@@ -15,7 +15,7 @@ model:
         do_cross: True
         descriptor_loss: True
         keypoint_net_type: 'KeypointMAX'
-
+    checkpoint_path: '../../../scratch/rueeggth/kp2dsonar'
 wandb:
     dry_run: True
     project: ""
