@@ -6,6 +6,9 @@
 #    + cross-border keypoints
 #    + descriptor loss
 
+arch:
+    epochs: 10
+
 model:
     params:
         debug: False
@@ -24,6 +27,8 @@ datasets:
         jittering: (0.5, 0.5, 0.2, 0.05)
     train:
         path: '../../../scratch/rueeggth/dataset/coco/train2017'
+        batch_size: 8
+        num_workers: 16
     val:
         path: "../../../scratch/rueeggth/dataset/HPatches"
 
