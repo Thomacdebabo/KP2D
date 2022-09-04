@@ -100,7 +100,8 @@ def setup_datasets_and_dataloaders(config):
                               pin_memory=True,
                               num_workers=config.train.num_workers,
                               worker_init_fn=_worker_init_fn,
-                              sampler=None)
+                              sampler=None,
+                              drop_last=True)
     return train_dataset, train_loader
 
 def setup_datasets_and_dataloaders_sonar(config,noise_util):
@@ -142,7 +143,8 @@ def setup_datasets_and_dataloaders_eval(config):
                              shuffle=False,
                              num_workers=8,
                              worker_init_fn=None,
-                             sampler=None)
+                             sampler=None,
+                             drop_last=True)
     return hp_dataset, data_loader
 
 def setup_datasets_and_dataloaders_eval_sonar(config,noise_util):
