@@ -11,7 +11,7 @@ class ai84_keypointnet(nn.Module):
     """
     7-Layer CNN - Lightweight image classification
     """
-    def __init__(self, n_features=64, dimensions=(512, 512), num_channels=3, bias=True, device = "cuda", **kwargs):
+    def __init__(self, n_features=256, dimensions=(512, 512), num_channels=3, bias=True, device = "cuda", **kwargs):
         super().__init__()
         ai8x.set_device(84, None, False)
         self.device = device
@@ -56,7 +56,6 @@ class ai84_keypointnet(nn.Module):
                                           padding=1, bias=bias, **kwargs)
         self.convFbb = ai8x.Conv2d(in_channels = c5, out_channels = n_features, kernel_size = 3,
                                     padding=1, bias=bias, **kwargs)
-
         self.cell = 8
         self.bn_momentum = 0.1
         self.cross_ratio = 2.0
@@ -82,7 +81,7 @@ class ai84_keypointnet(nn.Module):
         
         score = self.convDa(x)
         score = self.convDb(score) #removed sigmoid because not supported
-
+        score = torch.sigmoid(score)
         B, _, Hc, Wc = score.shape
 
         border_mask = torch.ones(B, Hc, Wc)
@@ -94,7 +93,8 @@ class ai84_keypointnet(nn.Module):
         score = score * border_mask.to(score.device)
         
         center_shift = self.convPa(x)
-        center_shift = self.convPb(center_shift).tanh()
+        center_shift = self.convPb(center_shift)
+        center_shift = torch.tanh(center_shift)
 
         step = (self.cell-1) / 2.
         center_base = image_grid(B, Hc, Wc,
@@ -104,8 +104,10 @@ class ai84_keypointnet(nn.Module):
 
         coord_un = center_base.add(center_shift.mul(self.cross_ratio * step))
         coord = coord_un.clone()
+
         coord[:, 0] = torch.clamp(coord_un[:, 0], min=0, max=W-1)
         coord[:, 1] = torch.clamp(coord_un[:, 1], min=0, max=H-1)
+
         feat = self.convFa(x)
         feat = self.convFb(feat)
         feat = self.convFaa(feat)

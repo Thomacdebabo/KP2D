@@ -11,6 +11,7 @@ from kp2dsonar.datasets.patches_dataset import PatchesDataset
 from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net
 from kp2dsonar.networks.keypoint_net import KeypointNet
 from kp2dsonar.networks.keypoint_resnet import KeypointResnet
+from kp2dsonar.networks.ai84_keypointnet import ai84_keypointnet
 
 def main():
     parser = argparse.ArgumentParser(
@@ -33,9 +34,12 @@ def main():
     if net_type == 'KeypointNet':
         keypoint_net = KeypointNet(use_color=model_args['use_color'],
                                 do_upsample=model_args['do_upsample'],
-                                do_cross=model_args['do_cross'])
+                                do_cross=model_args['do_cross'], device="cuda")
     elif net_type == 'KeypointResnet':
-        keypoint_net = KeypointResnet()
+        keypoint_net = KeypointResnet(device="cuda")
+
+    elif net_type == 'KeypointMAX':
+        keypoint_net = ai84_keypointnet( device = "cuda")
     else:
         raise KeyError ("net_type not recognized: " + str(net_type))
     keypoint_net.load_state_dict(checkpoint['state_dict'])
@@ -43,8 +47,10 @@ def main():
     keypoint_net.eval()
     print('Loaded KeypointNet from {}'.format(args.pretrained_model))
     print('KeypointNet params {}'.format(model_args))
+    print(checkpoint['config'])
 
     eval_params = [{'res': (320, 240), 'top_k': 300, }] if net_type is KeypointNet else [{'res': (320, 256), 'top_k': 300, }] # KeypointResnet needs (320,256)
+    eval_params += [{'res': (320, 240), 'top_k': 1500, }]
     eval_params += [{'res': (640, 480), 'top_k': 1000, }]
 
     for params in eval_params:

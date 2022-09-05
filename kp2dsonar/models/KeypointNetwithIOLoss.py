@@ -253,7 +253,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
         self.cell = 8 # Size of each output cell. Keep this fixed.
         self.border_remove = 4 # Remove points this close to the border.
-        self.top_k2 = 300
+        self.top_k2 = 500
         self.relax_field = 4
 
         self.debug = debug
@@ -320,7 +320,8 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         # Get network outputs
         source_score, source_uv_pred, source_feat = self.keypoint_net(input_img_aug)
         target_score, target_uv_pred, target_feat = self.keypoint_net(input_img)
-
+        max_score = source_score.max()
+        min_score = source_score.min()
 
         _, _, Hc, Wc = target_score.shape
 

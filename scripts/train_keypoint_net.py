@@ -8,7 +8,7 @@ import torch
 import torch.optim as optim
 
 from tqdm import tqdm
-
+import json
 from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net
 from kp2dsonar.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2dsonar.utils.config import parse_train_file
@@ -78,23 +78,11 @@ def main(file):
 
     optimizer = optim.Adam(model.optim_params)
 
-    # checkpoint model
-    log_path = os.path.join(config.model.checkpoint_path, 'logs')
-    os.makedirs(log_path, exist_ok=True)
 
-    if not config.wandb.dry_run:
-        summary = SummaryWriter(log_path,
-                                config,
-                                project=config.wandb.project,
-                                entity=config.wandb.entity,
-                                job_type='training',
-                                mode=os.getenv('WANDB_MODE', 'run'))
-        config.model.checkpoint_path = os.path.join(config.model.checkpoint_path, summary.run_name)
-    else:
-        summary = None
-        date_time = datetime.now().strftime("%m_%d_%Y__%H_%M_%S")
-        date_time = model_submodule(model).__class__.__name__ + '_' + date_time
-        config.model.checkpoint_path = os.path.join(config.model.checkpoint_path, config.model.params.keypoint_net_type + "_" + date_time)
+    summary = {"evaluation":{},"train":{}}
+    date_time = datetime.now().strftime("%m_%d_%Y__%H_%M_%S")
+    date_time = model_submodule(model).__class__.__name__ + '_' + date_time
+    config.model.checkpoint_path = os.path.join(config.model.checkpoint_path, config.model.params.keypoint_net_type + "_" + date_time)
     # added because when you run multiple jobs at once they sometimes overwrite each other
     i_dir = 1
     ending = ""
@@ -108,9 +96,8 @@ def main(file):
 
     os.makedirs(config.model.checkpoint_path, exist_ok=True)
 
-
     # Initial evaluation
-    evaluation(config, 0, model, summary) #TODO uncomment
+    #evaluation(config, 0, model, summary) #TODO uncomment
     # Train
     for epoch in range(config.arch.epochs):
         # train for one epoch (only log if eval to have aligned steps...)
@@ -154,12 +141,18 @@ def evaluation(config, completed_epoch, model, summary):
                                                             top_k=params['top_k'],
                                                             use_color=use_color)
         if summary:
-            summary.add_scalar('repeatability_' + str(params['res']), rep)
-            summary.add_scalar('localization_' + str(params['res']), loc)
-            summary.add_scalar('correctness_' + str(params['res']) + '_' + str(1), c1)
-            summary.add_scalar('correctness_' + str(params['res']) + '_' + str(3), c3)
-            summary.add_scalar('correctness_' + str(params['res']) + '_' + str(5), c5)
-            summary.add_scalar('mscore' + str(params['res']), mscore)
+            # summary.add_scalar('repeatability_' + str(params['res']), rep)
+            # summary.add_scalar('localization_' + str(params['res']), loc)
+            # summary.add_scalar('correctness_' + str(params['res']) + '_' + str(1), c1)
+            # summary.add_scalar('correctness_' + str(params['res']) + '_' + str(3), c3)
+            # summary.add_scalar('correctness_' + str(params['res']) + '_' + str(5), c5)
+            # summary.add_scalar('mscore' + str(params['res']), mscore)
+            summary["evaluation"][completed_epoch] = {'Repeatability':rep,
+                                                      'Localization Error':loc,
+                                                      'Correctness d1':c1,
+                                                      'Correctness d3':c3,
+                                                      'Correctness d5':c5,
+                                                      'MScore':mscore}
 
         print('Repeatability {0:.3f}'.format(rep))
         print('Localization Error {0:.3f}'.format(loc))
@@ -179,6 +172,11 @@ def evaluation(config, completed_epoch, model, summary):
             'config': config
         }, current_model_path)
 
+        pth = os.path.join(config.model.checkpoint_path, "log.json")
+        with open(pth, "w") as f:
+            json.dump(summary, f, indent=4, separators=(", ", ": "))
+            print("Saved evaluation results to:", pth)
+
 def train(config, train_loader, model, optimizer, epoch, summary):
     # Set to train mode
     model.train()
@@ -197,8 +195,8 @@ def train(config, train_loader, model, optimizer, epoch, summary):
     running_loss = running_recall = grad_norm_disp = grad_norm_pose = grad_norm_keypoint = 0.0
     train_progress = float(epoch) / float(config.arch.epochs)
 
-    log_freq = 10
-
+    log_freq = 1000
+    running_summary = {}
     for (i, data) in pbar:
 
         # calculate loss
@@ -227,24 +225,23 @@ def train(config, train_loader, model, optimizer, epoch, summary):
 
         i += 1
         if i % log_freq == 0:
-            with torch.no_grad():
-                if summary:
-                    train_metrics = {
-                        'train_loss': running_loss / (i + 1),
-                        'train_acc': running_recall / (i + 1),
-                        'train_progress': train_progress,
-                    }
-
-                    for param_group in optimizer.param_groups:
-                        train_metrics[param_group['name'] + '_learning_rate'] = param_group['lr']
-
-                    for k, v in train_metrics.items():
-                        summary.add_scalar(k, v)
-
-                    model(data_cuda, debug=True)
-                    for k, v in model_submodule(model).vis.items():
-                        summary.add_image(k, v)
-
+            if summary:
+                train_metrics = {
+                    'train_loss': running_loss / (i + 1),
+                    'train_acc': running_recall / (i + 1),
+                    'train_progress': train_progress,
+                }
+                running_summary[i] = train_metrics
+                # for param_group in optimizer.param_groups:
+                #     train_metrics[param_group['name'] + '_learning_rate'] = param_group['lr']
+                #
+                # for k, v in train_metrics.items():
+                #     summary.add_scalar(k, v)
+                #
+                # model(data_cuda, debug=True)
+                # for k, v in model_submodule(model).vis.items():
+                #     summary.add_image(k, v)
+    summary["train"][epoch] = running_summary
 if __name__ == '__main__':
     args = parse_args()
     main(args.file)

@@ -46,7 +46,6 @@ def evaluate_keypoint_net(data_loader, keypoint_net, output_shape=(320, 240), to
             # else:
             #     image = to_gray_normalized(sample['image'].to(keypoint_net.device))
             #     warped_image = to_gray_normalized(sample['image_aug'].to(keypoint_net.device))
-
             image = sample['image'].to(keypoint_net.device)
             warped_image = sample['image_aug'].to(keypoint_net.device)
 
