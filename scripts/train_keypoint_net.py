@@ -108,6 +108,7 @@ def main(file):
             evaluation(config, epoch + 1, model, summary)
         except:
             print("Evaluation failed...")
+
     printcolor('Training complete, models saved in {}'.format(config.model.checkpoint_path), "green")
 
 def evaluation(config, completed_epoch, model, summary):
