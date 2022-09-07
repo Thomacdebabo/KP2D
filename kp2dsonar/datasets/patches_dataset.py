@@ -61,7 +61,7 @@ class PatchesDataset(Dataset):
         elif mode=='default':
             self.normalization = self.normalization_default
         else:
-            ValueError(mode + ' not recognized.')
+            raise ValueError(mode + ' not recognized.')
 
         base_path = Path(root_dir)
         folder_paths = [x for x in base_path.iterdir() if x.is_dir()]
@@ -134,5 +134,6 @@ class PatchesDataset(Dataset):
     def normalization_default(self, img):
         img = img.sub(0.5).mul(2.0)
         return img
+
     def _read_rgb_file(self, filename):
         return Image.open(filename)
