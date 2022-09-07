@@ -13,6 +13,9 @@ from kp2dsonar.networks.ai84_keypointnet import ai84_keypointnet
 from kp2dsonar.utils.keypoints import draw_keypoints
 from kp2dsonar.datasets.noise_model import pol_2_cart, cart_2_pol
 
+from kp2dsonar.utils.image import (image_grid, to_color_normalized,
+                              to_gray_normalized)
+
 def build_descriptor_loss(source_des, target_des, source_points, tar_points, tar_points_un, keypoint_mask=None, relax_field=8,epsilon=1e-8, eval_only=False):
     """Desc Head Loss, per-pixel level triplet loss from https://arxiv.org/pdf/1902.11046.pdf..
     Parameters
@@ -313,8 +316,11 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         recall_2d = 0
         inlier_cnt = 0
 
-        input_img = data['image']/255.
-        input_img_aug = data['image_aug']/255.
+        input_img = data['image']
+        input_img_aug = data['image_aug']
+        input_img = to_color_normalized(input_img.clone())
+        input_img_aug = to_color_normalized(input_img_aug.clone())
+
         homography = data['homography']
 
         # Get network outputs
