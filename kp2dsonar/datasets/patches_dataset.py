@@ -7,6 +7,21 @@ import numpy as np
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
+from PIL import Image
+
+def get_normalization(mode):
+    if mode=='quantized':
+        def normalization(img):
+            img = img.sub(0.5).mul(256.).round().clamp(min=-128, max=127).div(128.)
+            return img
+
+    else:
+        def normalization(img):
+            img = torch.sub(img, 0.5)
+            img = torch.mul(img, 2.0)
+
+    return {'norm': normalization}
+
 
 
 class PatchesDataset(Dataset):
@@ -32,14 +47,22 @@ class PatchesDataset(Dataset):
         v - viewpoint sequences
         all - all sequences
     """
-    def __init__(self, root_dir, use_color=True, data_transform=None, output_shape=None, type='all'):
+    def __init__(self, root_dir, use_color=True, data_transform=None, output_shape=None, type='all', mode='quantized_default'):
 
         super().__init__()
         self.type = type
         self.root_dir = root_dir
-        self.data_transform = data_transform
+        self.data_transform = transforms.ToTensor()
         self.output_shape = output_shape
         self.use_color = use_color
+
+        if mode=='quantized_default':
+            self.normalization = self.normalization_quantized
+        elif mode=='default':
+            self.normalization = self.normalization_default
+        else:
+            ValueError(mode + ' not recognized.')
+
         base_path = Path(root_dir)
         folder_paths = [x for x in base_path.iterdir() if x.is_dir()]
         image_paths = []
@@ -74,16 +97,9 @@ class PatchesDataset(Dataset):
 
     def __getitem__(self, idx):
 
-        def _read_image(path):
-            img = cv2.imread(path, cv2.IMREAD_COLOR)
-            if self.use_color:
-                return img
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            return gray
+        image = np.array(self._read_rgb_file(self.files['image_paths'][idx]))
+        warped_image = np.array(self._read_rgb_file(self.files['warped_image_paths'][idx]))
 
-        image = _read_image(self.files['image_paths'][idx])
-
-        warped_image = _read_image(self.files['warped_image_paths'][idx])
         homography = np.array(self.files['homography'][idx])
         sample = {'image': image, 'image_aug': warped_image, 'homography': homography, 'index' : idx}
 
@@ -103,7 +119,20 @@ class PatchesDataset(Dataset):
                 if self.use_color is False:
                     sample[key] = np.expand_dims(sample[key], axis=2)
 
-        transform = transforms.ToTensor()
         for key in ['image', 'image_aug']:
-            sample[key] = transform(sample[key]).type('torch.FloatTensor')
+
+            sample[key] = self.data_transform(sample[key]).type('torch.FloatTensor')
+            sample[key] = self.normalization(sample[key])
+
+
         return sample
+
+    def normalization_quantized(self, img):
+        img = img.sub(0.5).mul(256.).round().clamp(min=-128, max=127).div(128.)
+        return img
+
+    def normalization_default(self, img):
+        img = img.sub(0.5).mul(2.0)
+        return img
+    def _read_rgb_file(self, filename):
+        return Image.open(filename)
