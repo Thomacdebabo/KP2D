@@ -24,7 +24,7 @@ wandb:
     project: ""
 datasets:
     augmentation:
-        mode: 'default'
+        mode: 'quantized_default'
         jittering: (0.5, 0.5, 0.2, 0.05)
         image_shape: (240, 320)
     train:

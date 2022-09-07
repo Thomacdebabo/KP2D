@@ -316,10 +316,9 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         recall_2d = 0
         inlier_cnt = 0
 
-        input_img = data['image']
-        input_img_aug = data['image_aug']
-        input_img = to_color_normalized(input_img.clone())
-        input_img_aug = to_color_normalized(input_img_aug.clone())
+        input_img = data['image'].clone()
+        input_img_aug = data['image_aug'].clone()
+
 
         homography = data['homography']
 
