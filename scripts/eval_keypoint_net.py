@@ -23,7 +23,7 @@ def main():
     args = parser.parse_args()
     checkpoint = torch.load(args.pretrained_model)
     model_args = checkpoint['config']['model']['params']
-
+    mode = 'default'
     # Create and load keypoint net
     if 'keypoint_net_type' in checkpoint['config']['model']['params']:
         net_type = checkpoint['config']['model']['params']['keypoint_net_type']
@@ -40,6 +40,7 @@ def main():
 
     elif net_type == 'KeypointMAX':
         keypoint_net = ai84_keypointnet( device = "cuda")
+        mode = 'quantized_default'
     else:
         raise KeyError ("net_type not recognized: " + str(net_type))
     keypoint_net.load_state_dict(checkpoint['state_dict'])
@@ -55,7 +56,7 @@ def main():
 
     for params in eval_params:
         hp_dataset = PatchesDataset(root_dir=args.input_dir, use_color=True,
-                                    output_shape=params['res'], type='a')
+                                    output_shape=params['res'], type='a', mode=mode)
         data_loader = DataLoader(hp_dataset,
                                  batch_size=1,
                                  pin_memory=False,

@@ -49,6 +49,7 @@ def image_transforms(noise_util, config):
 
 
             return sample
+
     elif mode=='sonar_real': #TODO
         def train_transforms(sample):
 
@@ -92,7 +93,56 @@ def image_transforms(noise_util, config):
         raise ValueError(str(mode) + " is not a supported mode. Check here in the code what is supported and what not.")
 
     return {'train': train_transforms}
+def image_eval_transforms(mode, shape):
 
+    if mode=='sonar_sim':
+        def eval_transforms(sample):
+            sample = resize_sample(sample, image_shape=shape)
+            sample = to_tensor_sample(sample)
+            sample = normalize_sample(sample)
+
+            return sample
+
+    elif mode=='sonar_real': #TODO
+        def eval_transforms(sample):
+            sample = resize_sample(sample, image_shape=shape)
+            sample = to_tensor_sample(sample)
+            sample = normalize_sample(sample)
+
+            return sample
+
+    elif mode == 'quantized_default':
+
+        def eval_transforms(sample):
+            sample = resize_sample(sample, image_shape=shape)
+            sample = to_tensor_sample(sample)
+            sample = a8x_normalize_sample(sample)
+
+            return sample
+    elif mode == 'quantized_sonar': #TODO: implement
+
+
+        def eval_transforms(sample):
+            sample = resize_sample(sample, image_shape=shape)
+            sample = spatial_augment_sample(sample)
+            sample = to_tensor_sample(sample)
+            sample = ha_augment_sample(sample)
+            sample = a8x_normalize_sample(sample)
+
+            return sample
+    elif mode=='default':
+
+
+        def eval_transforms(sample):
+            sample = resize_sample(sample, image_shape=shape)
+            sample = to_tensor_sample(sample)
+            sample = normalize_sample(sample)
+
+            return sample
+    else:
+        raise ValueError(str(mode) + " is not a supported mode. Check here in the code what is supported and what not.")
+
+    return {'eval': eval_transforms}
 def _set_seeds(seed=42):
     """Set Python random seeding and PyTorch seeds.
     Parameters
@@ -156,7 +206,13 @@ def setup_datasets_and_dataloaders_eval(config):
     """Prepare datasets for training, validation and test."""
 
     data_transforms = image_transforms(None,config)
-    hp_dataset = PatchesDataset(root_dir=config.val.path, use_color=True, output_shape=config.augmentation.image_shape,
+
+
+
+    hp_dataset = PatchesDataset(root_dir=config.val.path, use_color=True,
+                                output_shape=config.augmentation.image_shape,
+                                data_transform=None,
+                                mode=config.augmentation.mode,
                                 type='a')
 
     data_loader = DataLoader(hp_dataset,
