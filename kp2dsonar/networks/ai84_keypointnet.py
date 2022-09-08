@@ -1,6 +1,6 @@
 from torch import nn
 import torch
-import ai8x.ai8x
+import ai8x
 
 from kp2dsonar.utils.image import image_grid
 
