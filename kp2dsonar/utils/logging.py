@@ -10,6 +10,18 @@ import torch
 
 from kp2dsonar.utils.wandb import WandBLogger
 
+from functools import wraps
+from time import time
+
+def timing(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print ('func:%r  took: %2.4f sec' % (f.__name__, te-ts))
+        return result
+    return wrap
 
 def printcolor_single(message, color="white"):
     """Print a message in a certain color"""

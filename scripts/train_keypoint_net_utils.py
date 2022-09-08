@@ -15,7 +15,14 @@ from kp2dsonar.datasets.coco import COCOLoader
 from kp2dsonar.datasets.patches_dataset import PatchesDataset
 from kp2dsonar.datasets.sonarsim import SonarSimLoader
 
+
+def sample_to_device(data, device):
+    data['image'] = data['image'].to(device)
+    data['image_aug'] = data['image_aug'].to(device)
+    data['homography'] = data['homography'].to(device)
+    return data
 #TODO: remove
+
 def sample_to_cuda(data):
     if isinstance(data, str):
         return data
@@ -200,6 +207,7 @@ def setup_datasets_and_dataloaders_sonar(config,noise_util):
                               worker_init_fn=_worker_init_fn,
                               sampler=sampler,
                               drop_last=True)
+
     return train_dataset, train_loader
 
 def setup_datasets_and_dataloaders_eval(config):
