@@ -14,7 +14,7 @@ from kp2dsonar.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2dsonar.utils.config import parse_train_file
 from kp2dsonar.utils.logging import printcolor
 from kp2dsonar.utils.train_keypoint_net_utils import (_set_seeds, sample_to_device,
-                                      setup_datasets_and_dataloaders, setup_datasets_and_dataloaders_eval, image_transforms)
+                                      setup_datasets_and_dataloaders, setup_datasets_and_dataloaders_eval)
 
 def parse_args():
     """Parse arguments for training script"""
@@ -40,6 +40,9 @@ def model_submodule(model):
     return model.module if hasattr(model, 'module') else model
 
 class Trainer:
+    """
+    This class implements a simple training pipeline. It makes the code easier to read and more structured.
+    """
     def __init__(self, config):
         self.model = KeypointNetwithIOLoss(mode='default', **config.model.params)
 

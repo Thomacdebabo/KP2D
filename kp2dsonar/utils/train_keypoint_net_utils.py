@@ -150,6 +150,7 @@ def image_eval_transforms(mode, shape):
         raise ValueError(str(mode) + " is not a supported mode. Check here in the code what is supported and what not.")
 
     return {'eval': eval_transforms}
+
 def _set_seeds(seed=42):
     """Set Python random seeding and PyTorch seeds.
     Parameters

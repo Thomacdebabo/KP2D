@@ -319,7 +319,6 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         input_img = data['image'].clone()
         input_img_aug = data['image_aug'].clone()
 
-
         homography = data['homography']
 
         # Get network outputs
