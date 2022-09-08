@@ -15,7 +15,7 @@ from kp2dsonar.utils.config import parse_train_file
 from kp2dsonar.utils.logging import SummaryWriter, printcolor
 from kp2dsonar.utils.train_keypoint_net_utils import (_set_seeds, sample_to_cuda,
                                       setup_datasets_and_dataloaders_sonar, setup_datasets_and_dataloaders_eval_sonar, image_transforms)
-
+from train_keypoint_net import Trainer
 from kp2dsonar.datasets.noise_model import NoiseUtility
 #torch.autograd.set_detect_anomaly(True)
 
@@ -46,6 +46,74 @@ def model_submodule(model):
     """Get submodule of the model in the case of DataParallel, otherwise return
     the model itself. """
     return model.module if hasattr(model, 'module') else model
+
+class TrainerSonar(Trainer):
+    def __init__(self, config):
+
+        self.noise_util = NoiseUtility(config.datasets.augmentation.image_shape,
+                              fov=config.datasets.augmentation.fov,
+                              r_min=config.datasets.augmentation.r_min,
+                              r_max=config.datasets.augmentation.r_max,
+                              patch_ratio=config.datasets.augmentation.patch_ratio,
+                              scaling_amplitude=config.datasets.augmentation.scaling_amplitude,
+                              max_angle_div=config.datasets.augmentation.max_angle_div,
+                              super_resolution=config.datasets.augmentation.super_resolution,
+                              amp=config.datasets.augmentation.amp,
+                              artifact_amp=config.datasets.augmentation.artifact_amp,
+                              preprocessing_gradient=config.datasets.augmentation.preprocessing_gradient,
+                              add_row_noise=config.datasets.augmentation.add_row_noise,
+                              add_normal_noise=config.datasets.augmentation.add_normal_noise,
+                              add_artifact=config.datasets.augmentation.add_artifact,
+                              add_sparkle_noise=config.datasets.augmentation.add_sparkle_noise,
+                              blur=config.datasets.augmentation.blur,
+                              add_speckle_noise=config.datasets.augmentation.add_speckle_noise,
+                              normalize=config.datasets.augmentation.normalize,
+                              device="cpu")
+        super().__init__(config)
+    def init_datasets(self, config):
+        self.train_dataset, self.train_loader = setup_datasets_and_dataloaders_sonar(config.datasets, self.noise_util)
+        self.hp_dataset, self.data_loader = setup_datasets_and_dataloaders_eval_sonar(config.datasets, self.noise_util)
+
+    def evaluation(self, completed_epoch):
+        # Set to eval mode
+        self.model.eval()
+        self.model.training = False
+
+        use_color = self.config.model.params.use_color
+
+
+
+        for params in self.eval_params:
+
+            print('Loaded {} image pairs '.format(len(self.data_loader)))
+
+            printcolor('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']))
+            result_dict = evaluate_keypoint_net_sonar(self.data_loader,
+                                                                model_submodule(self.model).keypoint_net,
+                                                                output_shape=params['res'],
+                                                                top_k=params['top_k'],
+                                                                use_color=use_color)
+            if self.summary:
+                self.summary["evaluation"][completed_epoch] = result_dict
+            _print_result(result_dict)
+
+        # Save checkpoint
+        if self.config.model.save_checkpoint:
+            self.config['completed_epochs'] = completed_epoch
+            current_model_path = os.path.join(self.config.model.checkpoint_path, 'model.ckpt')
+            printcolor('\nSaving model (epoch:{}) at {}'.format(completed_epoch, current_model_path), 'green')
+            torch.save(
+            {
+                'state_dict': model_submodule(model_submodule(self.model).keypoint_net).state_dict(),
+                'config': self.config
+            }, current_model_path)
+
+            pth = os.path.join(self.config.model.checkpoint_path, "log.json")
+            with open(pth, "w") as f:
+                json.dump(self.summary, f, indent=4, separators=(", ", ": "))
+                print("Saved evaluation results to:", pth)
+            printcolor('Training complete, models saved in {}'.format(self.config.model.checkpoint_path), "green")
+
 
 def main(file):
     """
@@ -88,64 +156,15 @@ def main(file):
                               normalize=config.datasets.augmentation.normalize,
                               device="cpu") #unfortunately noise model does not work with cuda due to cuda reinitialization issue
     printcolor('-'*25 + 'SINGLE GPU ' + '-'*25, 'cyan')
-    
+
     if config.arch.seed is not None:
         _set_seeds(config.arch.seed)
 
-    printcolor('-'*25 + ' MODEL PARAMS ' + '-'*25)
+    printcolor('-' * 25 + ' MODEL PARAMS ' + '-' * 25)
     printcolor(config.model.params, 'red')
 
-    # Setup model and datasets/dataloaders
-    model = KeypointNetwithIOLoss(noise_util, mode=config.datasets.augmentation.mode,**config.model.params)
-    train_dataset, train_loader = setup_datasets_and_dataloaders_sonar(config.datasets, noise_util)
-    printcolor('({}) length: {}'.format("Train", len(train_dataset)))
-
-    optimizer = optim.Adam(model.optim_params)
-
-    # checkpoint model
-    log_path = os.path.join(config.model.checkpoint_path, 'logs')
-    os.makedirs(log_path, exist_ok=True)
-
-    if not config.wandb.dry_run:
-        summary = SummaryWriter(log_path,
-                                config,
-                                project=config.wandb.project,
-                                entity=config.wandb.entity,
-                                job_type='training',
-                                mode=os.getenv('WANDB_MODE', 'run'))
-        config.model.checkpoint_path = os.path.join(config.model.checkpoint_path, summary.run_name)
-    else:
-        summary = None
-        date_time = datetime.now().strftime("%m_%d_%Y__%H_%M_%S")
-        date_time = model_submodule(model).__class__.__name__ + '_' + date_time
-        config.model.checkpoint_path = os.path.join(config.model.checkpoint_path, date_time)
-    # added because when you run multiple jobs at once they sometimes overwrite each other
-    i_dir = 1
-    ending = ""
-    while os.path.isdir(config.model.checkpoint_path + ending ):
-        i_dir += 1
-        ending = "_" + str(i_dir)
-    config.model.checkpoint_path = config.model.checkpoint_path + ending
-
-
-    print('Saving models at {}'.format(config.model.checkpoint_path))
-
-    os.makedirs(config.model.checkpoint_path, exist_ok=True)
-
-
-    # Initial evaluation
-    evaluation(config, 0, model, summary,noise_util)
-    # Train
-    for epoch in range(config.arch.epochs):
-        # train for one epoch (only log if eval to have aligned steps...)
-        printcolor("\n--------------------------------------------------------------")
-        train(config, train_loader, model, optimizer, epoch, summary)
-
-        try:
-            evaluation(config, epoch + 1, model, summary,noise_util)
-        except:
-            print("Evaluation failed...")
-    printcolor('Training complete, models saved in {}'.format(config.model.checkpoint_path), "green")
+    trainer = TrainerSonar(config)
+    trainer.train()
 
 def evaluation(config, completed_epoch, model, summary,noise_util):
     # Set to eval mode

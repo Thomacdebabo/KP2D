@@ -45,18 +45,17 @@ class Trainer:
     """
     def __init__(self, config):
         self.model = KeypointNetwithIOLoss(mode='default', **config.model.params)
-
-        self.train_dataset, self.train_loader = setup_datasets_and_dataloaders(config.datasets)
-        self.hp_dataset, self.data_loader = setup_datasets_and_dataloaders_eval(config.datasets)
-
         self.optimizer = optim.Adam(self.model.optim_params)
-
+        self.init_datasets(config)
         self.summary = {"evaluation": {}, "train": {}}
         self.config = config
         self.eval_params = [{'res': self.config.datasets.augmentation.image_shape[::-1], 'top_k': 300}]
 
         self.init_dir()
         printcolor('({}) length: {}'.format("Train", len(self.train_dataset)))
+    def init_datasets(self, config):
+        self.train_dataset, self.train_loader = setup_datasets_and_dataloaders(config.datasets)
+        self.hp_dataset, self.data_loader = setup_datasets_and_dataloaders_eval(config.datasets)
 
     def init_dir(self):
         date_time = datetime.now().strftime("%m_%d_%Y__%H_%M_%S")
