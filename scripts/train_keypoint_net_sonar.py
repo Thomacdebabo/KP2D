@@ -13,7 +13,7 @@ from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net_sonar
 from kp2dsonar.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2dsonar.utils.config import parse_train_file
 from kp2dsonar.utils.logging import SummaryWriter, printcolor
-from train_keypoint_net_utils import (_set_seeds, sample_to_cuda,
+from kp2dsonar.utils.train_keypoint_net_utils import (_set_seeds, sample_to_cuda,
                                       setup_datasets_and_dataloaders_sonar, setup_datasets_and_dataloaders_eval_sonar, image_transforms)
 
 from kp2dsonar.datasets.noise_model import NoiseUtility

@@ -12,13 +12,9 @@ import json
 from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net
 from kp2dsonar.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2dsonar.utils.config import parse_train_file
-from kp2dsonar.utils.logging import SummaryWriter, printcolor
-from train_keypoint_net_utils import (_set_seeds, sample_to_cuda, sample_to_device,
+from kp2dsonar.utils.logging import printcolor
+from kp2dsonar.utils.train_keypoint_net_utils import (_set_seeds, sample_to_device,
                                       setup_datasets_and_dataloaders, setup_datasets_and_dataloaders_eval, image_transforms)
-
-from kp2dsonar.utils.logging import timing
-#torch.autograd.set_detect_anomaly(True)
-
 
 def parse_args():
     """Parse arguments for training script"""
@@ -42,8 +38,6 @@ def model_submodule(model):
     """Get submodule of the model in the case of DataParallel, otherwise return
     the model itself. """
     return model.module if hasattr(model, 'module') else model
-
-
 
 class Trainer:
     def __init__(self, config):
@@ -195,7 +189,6 @@ class Trainer:
             except:
                 print("Evaluation failed...")
 
-
 def main(file):
     """
     KP2D training script.
@@ -212,12 +205,11 @@ def main(file):
     print(config)
     print(config.arch)
 
-    # Initialize horovod #remove
+    # Initialize horovod
     n_threads = int(os.environ.get("OMP_NUM_THREADS", 1))
     torch.set_num_threads(n_threads)
     torch.backends.cudnn.benchmark = True
 
- #unfortunately noise model does not work with cuda due to cuda reinitialization issue
     printcolor('-'*25 + 'SINGLE GPU ' + '-'*25, 'cyan')
     
     if config.arch.seed is not None:
