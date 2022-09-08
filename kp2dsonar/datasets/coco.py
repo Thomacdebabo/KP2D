@@ -40,7 +40,9 @@ class COCOLoader(Dataset):
         image = self._read_rgb_file(filename)
 
         if image.mode == 'L':
-            raise ValueError('Greyscale not supported')
+            image_new = Image.new("RGB", image.size)
+            image_new.paste(image)
+            sample = {'image': image_new, 'idx': idx}
         else:
             sample = {'image': image, 'idx': idx}
 
