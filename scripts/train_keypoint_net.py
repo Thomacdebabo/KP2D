@@ -53,10 +53,36 @@ class Trainer:
 
         self.init_dir()
         printcolor('({}) length: {}'.format("Train", len(self.train_dataset)))
+
+    #These are different for children
     def init_datasets(self, config):
         self.train_dataset, self.train_loader = setup_datasets_and_dataloaders(config.datasets)
         self.hp_dataset, self.data_loader = setup_datasets_and_dataloaders_eval(config.datasets)
 
+    def _evaluate(self, completed_epoch, params):
+
+        use_color = self.config.model.params.use_color
+        rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net(self.data_loader,
+                                                             model_submodule(self.model).keypoint_net,
+                                                             output_shape=params['res'],
+                                                             top_k=params['top_k'],
+                                                             use_color=use_color)
+        if self.summary:
+            self.summary["evaluation"][completed_epoch] = {'Repeatability': rep,
+                                                           'Localization Error': loc,
+                                                           'Correctness d1': c1,
+                                                           'Correctness d3': c3,
+                                                           'Correctness d5': c5,
+                                                           'MScore': mscore}
+
+        print('Repeatability {0:.3f}'.format(rep))
+        print('Localization Error {0:.3f}'.format(loc))
+        print('Correctness d1 {:.3f}'.format(c1))
+        print('Correctness d3 {:.3f}'.format(c3))
+        print('Correctness d5 {:.3f}'.format(c5))
+        print('MScore {:.3f}'.format(mscore))
+
+    #These do not have to be adapted in children (TrainerSonar)
     def init_dir(self):
         date_time = datetime.now().strftime("%m_%d_%Y__%H_%M_%S")
         date_time = model_submodule(self.model).__class__.__name__ + '_' + date_time
@@ -73,56 +99,37 @@ class Trainer:
 
         os.makedirs(self.config.model.checkpoint_path, exist_ok=True)
 
+    def _save_results(self, completed_epoch):
+        self.config['completed_epochs'] = completed_epoch
+        current_model_path = os.path.join(self.config.model.checkpoint_path, 'model.ckpt')
+        printcolor('\nSaving model (epoch:{}) at {}'.format(completed_epoch, current_model_path), 'green')
+        torch.save(
+            {
+                'state_dict': model_submodule(model_submodule(self.model).keypoint_net).state_dict(),
+                'config': self.config
+            }, current_model_path)
+
+        pth = os.path.join(self.config.model.checkpoint_path, "log.json")
+        with open(pth, "w") as f:
+            json.dump(self.summary, f, indent=4, separators=(", ", ": "))
+            print("Saved evaluation results to:", pth)
+        printcolor('Training complete, models saved in {}'.format(self.config.model.checkpoint_path), "green")
+
     def evaluation(self, completed_epoch):
         # Set to eval mode
         self.model.eval()
         self.model.training = False
-
-        use_color = self.config.model.params.use_color
-
-
 
         for params in self.eval_params:
 
             print('Loaded {} image pairs '.format(len(self.data_loader)))
 
             printcolor('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']))
-            rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net(self.data_loader,
-                                                                model_submodule(self.model).keypoint_net,
-                                                                output_shape=params['res'],
-                                                                top_k=params['top_k'],
-                                                                use_color=use_color)
-            if self.summary:
-                self.summary["evaluation"][completed_epoch] = {'Repeatability':rep,
-                                                          'Localization Error':loc,
-                                                          'Correctness d1':c1,
-                                                          'Correctness d3':c3,
-                                                          'Correctness d5':c5,
-                                                          'MScore':mscore}
-
-            print('Repeatability {0:.3f}'.format(rep))
-            print('Localization Error {0:.3f}'.format(loc))
-            print('Correctness d1 {:.3f}'.format(c1))
-            print('Correctness d3 {:.3f}'.format(c3))
-            print('Correctness d5 {:.3f}'.format(c5))
-            print('MScore {:.3f}'.format(mscore))
+            self._evaluate(completed_epoch, params)
 
         # Save checkpoint
         if self.config.model.save_checkpoint:
-            self.config['completed_epochs'] = completed_epoch
-            current_model_path = os.path.join(self.config.model.checkpoint_path, 'model.ckpt')
-            printcolor('\nSaving model (epoch:{}) at {}'.format(completed_epoch, current_model_path), 'green')
-            torch.save(
-            {
-                'state_dict': model_submodule(model_submodule(self.model).keypoint_net).state_dict(),
-                'config': self.config
-            }, current_model_path)
-
-            pth = os.path.join(self.config.model.checkpoint_path, "log.json")
-            with open(pth, "w") as f:
-                json.dump(self.summary, f, indent=4, separators=(", ", ": "))
-                print("Saved evaluation results to:", pth)
-            printcolor('Training complete, models saved in {}'.format(self.config.model.checkpoint_path), "green")
+            self._save_results(completed_epoch)
 
     def train_single_epoch(self, epoch, log_freq = 1000):
         # Set to train mode
