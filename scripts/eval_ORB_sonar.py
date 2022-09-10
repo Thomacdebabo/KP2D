@@ -18,6 +18,16 @@ from kp2dsonar.datasets.augmentations import (ha_augment_sample, resize_sample,
                                               to_tensor_sample, to_tensor_sonar_sample)
 from kp2dsonar.datasets.noise_model import NoiseUtility
 import cv2
+def parse_args():
+
+    parser = argparse.ArgumentParser(
+        description='Script for KeyPointNet testing',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
+    parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cpu')
+
+    return parser.parse_args()
+
 def _print_result(result_dict):
     for k in result_dict.keys():
         print("%s: %.3f" %( k, result_dict[k]))
@@ -40,13 +50,7 @@ def image_transforms(noise_util):
 
     return {'train': train_transforms}
 def main():
-    parser = argparse.ArgumentParser(
-        description='Script for KeyPointNet testing',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
-    parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cpu')
-
-    args = parser.parse_args()
+    args = parse_args()
     top_k = 1500
     res = 1024
 

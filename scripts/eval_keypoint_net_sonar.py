@@ -22,6 +22,20 @@ def _print_result(result_dict):
     for k in result_dict.keys():
         print("%s: %.3f" %( k, result_dict[k]))
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Script for KeyPointNet testing',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
+    parser.add_argument("--model_dir", required=False, type=str, help="Directory with models which will get evaluated", default='..\data\models\kp2dsonar')
+    parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cpu')
+    parser.add_argument("--top_k", required=False, type=int, help="top-k value", default=1500)
+    parser.add_argument("--conf_threshold", required=False, type=float, help="Score threshold for keypoint detection", default=0.9)
+    parser.add_argument("--debug", required=False, type=bool, help="toggle debug plots", default=False)
+    parser.add_argument("--res", required=False, type=int, help="resolution in x direction", default=512)
+    args = parser.parse_args()
+    return args
+
 def _load_model(model_path, device):
     checkpoint = torch.load(model_path, map_location=torch.device(device))
     model_args = checkpoint['config']['model']['params']
@@ -145,6 +159,7 @@ def _get_eval_params(res, top_k):
     ]
 
 def image_transforms(noise_util):
+
     def train_transforms(sample):
         sample = resize_sample(sample, image_shape=noise_util.shape)
 
@@ -164,19 +179,9 @@ def image_transforms(noise_util):
 
 def main():
 
-    parser = argparse.ArgumentParser(
-        description='Script for KeyPointNet testing',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
-    parser.add_argument("--model_dir", required=False, type=str, help="Directory with models which will get evaluated", default='..\data\models\kp2dsonar')
-    parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cpu')
-    parser.add_argument("--top_k", required=False, type=int, help="top-k value", default=1500)
-    parser.add_argument("--conf_threshold", required=False, type=float, help="Score threshold for keypoint detection", default=0.9)
-    parser.add_argument("--debug", required=False, type=bool, help="toggle debug plots", default=False)
-    parser.add_argument("--res", required=False, type=int, help="resolution in x direction", default=512)
-
+    args = parse_args()
     #Configuration - default: runs over all models found in ..\data\models\kp2dsonar
-    args = parser.parse_args()
+
     model_paths = glob.glob(os.path.join(args.model_dir,"*.ckpt"))
     top_k = args.top_k
     res = (args.res, args.res) #only square pics allowed at this point... Might cause problems with resnet if not square
@@ -237,7 +242,7 @@ def main():
                 conf_threshold=conf_threshold,
                 use_color=True,
                 device=args.device,
-                debug= debug)
+                debug=debug)
 
             results.append({'run_name': run_name,
                             'result': result_dict})
