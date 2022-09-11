@@ -28,6 +28,7 @@ datasets:
         path: "D:/MachineLearning/Coco/train_debug"
         num_workers: 4
         batch_size: 8
+        repeat: 4
     val:
         path: "D:/PycharmProjects/KP2D/data/datasets/kp2d/HPatches"
 

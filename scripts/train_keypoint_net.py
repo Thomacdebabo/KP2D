@@ -15,6 +15,9 @@ from kp2dsonar.utils.config import parse_train_file
 from kp2dsonar.utils.logging import printcolor, timing
 from kp2dsonar.utils.train_keypoint_net_utils import (_set_seeds, sample_to_device,
                                       setup_datasets_and_dataloaders, setup_datasets_and_dataloaders_eval)
+import warnings
+warnings.filterwarnings("ignore")
+
 
 def parse_args():
     """Parse arguments for training script"""
@@ -141,9 +144,6 @@ class Trainer:
 
         # compute gradient
         self.scaler.scale(loss).backward()
-
-
-
         # SGD step
         l = []
         for key, data in self.model.keypoint_net.state_dict().items():
