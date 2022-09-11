@@ -12,7 +12,7 @@ from kp2dsonar.networks.keypoint_resnet import KeypointResnet
 from kp2dsonar.networks.ai84_keypointnet import ai84_keypointnet
 from kp2dsonar.utils.keypoints import draw_keypoints
 from kp2dsonar.datasets.noise_model import pol_2_cart, cart_2_pol
-
+from kp2dsonar.utils.logging import timing
 from kp2dsonar.utils.image import (image_grid, to_color_normalized,
                               to_gray_normalized)
 
@@ -272,6 +272,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
             self.keypoint_net = ai84_keypointnet( device = self.device)
         else:
             raise NotImplemented('Keypoint net type not supported {}'.format(keypoint_net_type))
+
         self.keypoint_net = self.keypoint_net.to(self.device)
         self.add_optimizer_params('KeypointNet', self.keypoint_net.parameters(), keypoint_net_learning_rate)
 
@@ -313,9 +314,6 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         loss_dict = {}
         B, _, H, W = data['image'].shape
 
-        recall_2d = 0
-        inlier_cnt = 0
-
         input_img = data['image'].clone()
         input_img_aug = data['image_aug'].clone()
 
@@ -324,8 +322,6 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         # Get network outputs
         source_score, source_uv_pred, source_feat = self.keypoint_net(input_img_aug)
         target_score, target_uv_pred, target_feat = self.keypoint_net(input_img)
-        max_score = source_score.max()
-        min_score = source_score.min()
 
         _, _, Hc, Wc = target_score.shape
 
@@ -484,7 +480,6 @@ def _normalize_uv_coordinates(uv_pred, H, W):
     uv_norm[:, 1] = (uv_norm[:, 1] / (float(H - 1) / 2.)) - 1.
     uv_norm = uv_norm.permute(0, 2, 3, 1)
     return uv_norm
-
 
 def _denormalize_uv_coordinates(uv_norm, H, W):
     uv_pred = uv_norm.clone()

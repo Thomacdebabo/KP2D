@@ -12,7 +12,7 @@ import json
 from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net
 from kp2dsonar.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from kp2dsonar.utils.config import parse_train_file
-from kp2dsonar.utils.logging import printcolor
+from kp2dsonar.utils.logging import printcolor, timing
 from kp2dsonar.utils.train_keypoint_net_utils import (_set_seeds, sample_to_device,
                                       setup_datasets_and_dataloaders, setup_datasets_and_dataloaders_eval)
 
@@ -52,6 +52,7 @@ class Trainer:
         self.eval_params = [{'res': self.config.datasets.augmentation.image_shape[::-1], 'top_k': 300}]
 
         self.init_dir()
+        self.scaler = torch.cuda.amp.GradScaler()
         printcolor('({}) length: {}'.format("Train", len(self.train_dataset)))
 
     #These are different for children
@@ -131,6 +132,42 @@ class Trainer:
         if self.config.model.save_checkpoint:
             self._save_results(completed_epoch)
 
+    def train_step_mixed_precision(self, data):
+        # calculate loss
+        self.optimizer.zero_grad()
+        data_cuda = sample_to_device(data, self.config.device)
+        with torch.cuda.amp.autocast(dtype=torch.float16):
+            loss, recall = self.model(data_cuda)
+
+        # compute gradient
+        self.scaler.scale(loss).backward()
+
+
+
+        # SGD step
+        l = []
+        for key, data in self.model.keypoint_net.state_dict().items():
+            l.append(data.max().cpu().numpy())
+        self.scaler.step(self.optimizer)
+        self.scaler.update()
+        return loss, recall
+
+    def train_step(self, data):
+        # calculate loss
+        self.optimizer.zero_grad()
+        data_cuda = sample_to_device(data, self.config.device)
+        loss, recall = self.model(data_cuda)
+
+        # compute gradient
+        loss.backward()
+
+        # SGD step
+        l = []
+        for key, data in self.model.keypoint_net.state_dict().items():
+            l.append(data.max().cpu().numpy())
+        self.optimizer.step()
+        return loss, recall
+
     def train_single_epoch(self, epoch, log_freq = 1000):
         # Set to train mode
         self.model.train()
@@ -153,22 +190,9 @@ class Trainer:
         running_summary = {}
         for (i, data) in pbar:
 
-            # calculate loss
-            self.optimizer.zero_grad()
-            data_cuda = sample_to_device(data, self.config.device)
-            loss, recall = self.model(data_cuda)
-
-            # compute gradient
-            loss.backward()
-
+            loss, recall = self.train_step(data)
             running_loss += float(loss)
             running_recall += recall
-
-            # SGD step
-            l = []
-            for key,data in self.model.keypoint_net.state_dict().items():
-                l.append(data.max().cpu().numpy())
-            self.optimizer.step()
             # pretty progress bar
             pbar.set_description('Train [ E {}, T {:d}, R {:.4f}, R_Avg {:.4f}, L {:.4f}, L_Avg {:.4f}]'.format(
                 epoch, epoch * self.config.datasets.train.repeat, recall, running_recall / (i + 1), float(loss),

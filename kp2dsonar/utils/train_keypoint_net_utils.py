@@ -22,7 +22,10 @@ def sample_to_device(data, device):
     data['homography'] = data['homography'].to(device)
     return data
 #TODO: remove
-
+global _worker_init_fn
+def _worker_init_fn(worker_id):
+    """Worker init fn to fix the seed of the workers"""
+    _set_seeds(42 + worker_id)
 def sample_to_cuda(data):
     if isinstance(data, str):
         return data
@@ -39,67 +42,71 @@ def sample_to_cuda(data):
     else:
         return data.to('cuda')
 
-def image_transforms(noise_util, config):
-    mode = config.augmentation.mode
-    if mode=='sonar_sim' and noise_util:
-        def train_transforms(sample):
-            # sample = resize_sample(sample, image_shape=config.augmentation.image_shape)
 
-            sample = noise_util.pol_2_cart_sample(sample)
-            sample = noise_util.augment_sample(sample)
+class image_transforms():
+    def __init__(self, noise_util,config):
+        self.angles = noise_util
+        self.config = config
+        mode = config.augmentation.mode
+        self.transform = getattr(self,  "_" + mode)
 
-            sample = noise_util.filter_sample(sample)
-            sample = noise_util.cart_2_pol_sample(sample)
-            if noise_util.post_noise:
-                sample = noise_util.add_noise_function(sample)
-            sample = to_tensor_sonar_sample(sample)
+    def _sonar_sim(self,sample):
+
+        # sample = resize_sample(sample, image_shape=config.augmentation.image_shape)
+
+        sample = self.noise_util.pol_2_cart_sample(sample)
+        sample = self.noise_util.augment_sample(sample)
+
+        sample = self.noise_util.filter_sample(sample)
+        sample = self.noise_util.cart_2_pol_sample(sample)
+        if self.noise_util.post_noise:
+            sample = self.noise_util.add_noise_function(sample)
+        sample = to_tensor_sonar_sample(sample)
 
 
-            return sample
+        return sample
 
-    elif mode=='sonar_real': #TODO
-        def train_transforms(sample):
+    def _sonar_real(self, sample): #TODO
 
-            sample = noise_util.pol_2_cart_sample(sample)
-            sample = noise_util.augment_sample(sample)
+        sample = self.noise_util.pol_2_cart_sample(sample)
+        sample = self.noise_util.augment_sample(sample)
 
-            sample = noise_util.filter_sample(sample)
-            sample = noise_util.cart_2_pol_sample(sample)
-            sample = to_tensor_sonar_sample(sample)
+        sample = self.noise_util.filter_sample(sample)
+        sample = self.noise_util.cart_2_pol_sample(sample)
+        sample = to_tensor_sonar_sample(sample)
 
-            return sample
-    elif mode == 'quantized_default':
-        def train_transforms(sample):
-            sample = resize_sample(sample, image_shape=config.augmentation.image_shape)
-            sample = spatial_augment_sample(sample)
-            sample = to_tensor_sample(sample)
-            sample = ha_augment_sample(sample, jitter_paramters=config.augmentation.jittering)
-            sample = a8x_normalize_sample(sample)
+        return sample
+    def _quantized_default(self, sample):
 
-            return sample
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+        sample = spatial_augment_sample(sample)
+        sample = to_tensor_sample(sample)
+        sample = ha_augment_sample(sample, jitter_paramters=self.config.augmentation.jittering)
+        sample = a8x_normalize_sample(sample)
 
-    elif mode == 'quantized_sonar': #TODO: implement
-        def train_transforms(sample):
-            sample = resize_sample(sample, image_shape=config.augmentation.image_shape)
-            sample = spatial_augment_sample(sample)
-            sample = to_tensor_sample(sample)
-            sample = ha_augment_sample(sample, jitter_paramters=config.augmentation.jittering)
-            sample = a8x_normalize_sample(sample)
+        return sample
 
-            return sample
-    elif mode=='default':
-        def train_transforms(sample):
-            sample = resize_sample(sample, image_shape=config.augmentation.image_shape)
-            sample = spatial_augment_sample(sample)
-            sample = to_tensor_sample(sample)
-            sample = ha_augment_sample(sample, jitter_paramters=config.augmentation.jittering)
-            sample = normalize_sample(sample)
+    def _quantized_sonar(self, sample): #TODO: implement
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+        sample = spatial_augment_sample(sample)
+        sample = to_tensor_sample(sample)
+        sample = ha_augment_sample(sample, jitter_paramters=self.config.augmentation.jittering)
+        sample = a8x_normalize_sample(sample)
 
-            return sample
-    else:
-        raise ValueError(str(mode) + " is not a supported mode. Check here in the code what is supported and what not.")
+        return sample
+    def _default(self, sample):
 
-    return {'train': train_transforms}
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+        sample = spatial_augment_sample(sample)
+        sample = to_tensor_sample(sample)
+        sample = ha_augment_sample(sample, jitter_paramters=self.config.augmentation.jittering)
+        sample = normalize_sample(sample)
+
+        return sample
+
+    def __call__(self, sample):
+        return self.transform(sample)
+
 def image_eval_transforms(mode, shape):
 
     if mode=='sonar_sim':
@@ -165,12 +172,11 @@ def _set_seeds(seed=42):
 
 def setup_datasets_and_dataloaders(config):
     """Prepare datasets for training, validation and test."""
-    def _worker_init_fn(worker_id):
-        """Worker init fn to fix the seed of the workers"""
-        _set_seeds(42 + worker_id)
+
 
     data_transforms = image_transforms(None, config)
-    train_dataset = COCOLoader(config.train.path, data_transform=data_transforms['train'])
+
+    train_dataset = COCOLoader(config.train.path, data_transform=data_transforms)
     # Concatenate dataset to produce a larger one
     if config.train.repeat > 1:
         train_dataset = ConcatDataset([train_dataset for _ in range(config.train.repeat)])
@@ -186,12 +192,10 @@ def setup_datasets_and_dataloaders(config):
 
 def setup_datasets_and_dataloaders_sonar(config,noise_util):
     """Prepare datasets for training, validation and test."""
-    def _worker_init_fn(worker_id):
-        """Worker init fn to fix the seed of the workers"""
-        _set_seeds(42 + worker_id)
+
 
     data_transforms = image_transforms(noise_util,config)
-    train_dataset = SonarSimLoader(config.train.path, noise_util,data_transform=data_transforms['train'])
+    train_dataset = SonarSimLoader(config.train.path, noise_util,data_transform=data_transforms)
     # Concatenate dataset to produce a larger one
     if config.train.repeat > 1:
         train_dataset = ConcatDataset([train_dataset for _ in range(config.train.repeat)])
@@ -236,12 +240,9 @@ def setup_datasets_and_dataloaders_eval(config):
 
 def setup_datasets_and_dataloaders_eval_sonar(config,noise_util):
     """Prepare datasets for training, validation and test."""
-    def _worker_init_fn(worker_id):
-        """Worker init fn to fix the seed of the workers"""
-        _set_seeds(42 + worker_id)
 
     data_transforms = image_transforms(noise_util,config)
-    train_dataset = SonarSimLoader(config.val.path, noise_util,data_transform=data_transforms['train'])
+    train_dataset = SonarSimLoader(config.val.path, noise_util,data_transform=data_transforms)
     # Concatenate dataset to produce a larger one
     if config.train.repeat > 1:
         train_dataset = ConcatDataset([train_dataset for _ in range(config.train.repeat)])

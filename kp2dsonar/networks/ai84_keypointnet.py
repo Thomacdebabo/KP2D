@@ -3,7 +3,7 @@ import torch
 import ai8x
 
 from kp2dsonar.utils.image import image_grid
-
+from kp2dsonar.utils.logging import timing
 """
 Network description class
 """
