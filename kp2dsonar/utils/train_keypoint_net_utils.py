@@ -21,26 +21,12 @@ def sample_to_device(data, device):
     data['image_aug'] = data['image_aug'].to(device)
     data['homography'] = data['homography'].to(device)
     return data
-#TODO: remove
+
+
 global _worker_init_fn
 def _worker_init_fn(worker_id):
     """Worker init fn to fix the seed of the workers"""
     _set_seeds(42 + worker_id)
-def sample_to_cuda(data):
-    if isinstance(data, str):
-        return data
-    if isinstance(data, dict):
-        data_cuda = {}
-        for key in data.keys():
-            data_cuda[key] = sample_to_cuda(data[key])
-        return data_cuda
-    elif isinstance(data, list):
-        data_cuda = []
-        for key in data:
-            data_cuda.append(sample_to_cuda(key))
-        return data_cuda
-    else:
-        return data.to('cuda')
 
 
 class image_transforms():
@@ -107,56 +93,58 @@ class image_transforms():
     def __call__(self, sample):
         return self.transform(sample)
 
-def image_eval_transforms(mode, shape):
+#Not yet in use
+class image_transforms_eval():
+    def __init__(self, noise_util,config):
+        self.angles = noise_util
+        self.config = config
+        mode = config.augmentation.mode
+        self.transform = getattr(self,  "_" + mode)
 
-    if mode=='sonar_sim':
-        def eval_transforms(sample):
-            sample = resize_sample(sample, image_shape=shape)
-            sample = to_tensor_sample(sample)
-            sample = normalize_sample(sample)
+    def _sonar_sim(self,sample):
 
-            return sample
+        sample = self.noise_util.pol_2_cart_sample(sample)
+        sample = self.noise_util.augment_sample(sample)
 
-    elif mode=='sonar_real': #TODO
-        def eval_transforms(sample):
-            sample = resize_sample(sample, image_shape=shape)
-            sample = to_tensor_sample(sample)
-            sample = normalize_sample(sample)
-
-            return sample
-
-    elif mode == 'quantized_default':
-
-        def eval_transforms(sample):
-            sample = resize_sample(sample, image_shape=shape)
-            sample = to_tensor_sample(sample)
-            sample = a8x_normalize_sample(sample)
-
-            return sample
-    elif mode == 'quantized_sonar': #TODO: implement
+        sample = self.noise_util.filter_sample(sample)
+        sample = self.noise_util.cart_2_pol_sample(sample)
+        if self.noise_util.post_noise:
+            sample = self.noise_util.add_noise_function(sample)
+        sample = to_tensor_sonar_sample(sample)
 
 
-        def eval_transforms(sample):
-            sample = resize_sample(sample, image_shape=shape)
-            sample = spatial_augment_sample(sample)
-            sample = to_tensor_sample(sample)
-            sample = ha_augment_sample(sample)
-            sample = a8x_normalize_sample(sample)
+        return sample
 
-            return sample
-    elif mode=='default':
+    def _sonar_real(self, sample): #TODO
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+        sample = to_tensor_sample(sample)
+        sample = normalize_sample(sample)
 
+        return sample
 
-        def eval_transforms(sample):
-            sample = resize_sample(sample, image_shape=shape)
-            sample = to_tensor_sample(sample)
-            sample = normalize_sample(sample)
+    def _quantized_default(self, sample):
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+        sample = to_tensor_sample(sample)
+        sample = a8x_normalize_sample(sample)
 
-            return sample
-    else:
-        raise ValueError(str(mode) + " is not a supported mode. Check here in the code what is supported and what not.")
+        return sample
 
-    return {'eval': eval_transforms}
+    def _quantized_sonar(self, sample): #TODO: implement
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+        sample = spatial_augment_sample(sample)
+        sample = to_tensor_sample(sample)
+        sample = ha_augment_sample(sample)
+        sample = a8x_normalize_sample(sample)
+        return sample
+
+    def _default(self, sample):
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+        sample = to_tensor_sample(sample)
+        sample = normalize_sample(sample)
+        return sample
+
+    def __call__(self, sample):
+        return self.transform(sample)
 
 def _set_seeds(seed=42):
     """Set Python random seeding and PyTorch seeds.
@@ -218,7 +206,7 @@ def setup_datasets_and_dataloaders_sonar(config,noise_util):
 def setup_datasets_and_dataloaders_eval(config):
     """Prepare datasets for training, validation and test."""
 
-    data_transforms = image_transforms(None,config)
+    data_transforms = image_transforms_eval(None,config)
 
 
 
@@ -241,7 +229,7 @@ def setup_datasets_and_dataloaders_eval(config):
 def setup_datasets_and_dataloaders_eval_sonar(config,noise_util):
     """Prepare datasets for training, validation and test."""
 
-    data_transforms = image_transforms(noise_util,config)
+    data_transforms = image_transforms_eval(noise_util,config)
     train_dataset = SonarSimLoader(config.val.path, noise_util,data_transform=data_transforms)
     # Concatenate dataset to produce a larger one
     if config.train.repeat > 1:
