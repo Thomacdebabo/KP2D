@@ -24,6 +24,9 @@ datasets:
         mode: 'quantized_default'
         jittering: (0.5, 0.5, 0.2, 0.05)
         image_shape: (240, 320)
+        patch_ratio: 0.7
+        scaling_amplitude: 0.2
+        max_angle_div: 2
     train:
         path: "D:/MachineLearning/Coco/train_debug"
         num_workers: 4

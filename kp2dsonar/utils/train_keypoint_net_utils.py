@@ -2,7 +2,7 @@
 
 import os
 import random
-
+from math import pi
 import numpy as np
 import torch
 import torch.utils.data.distributed
@@ -67,7 +67,9 @@ class image_transforms():
         sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
         sample = spatial_augment_sample(sample)
         sample = to_tensor_sample(sample)
-        sample = ha_augment_sample(sample, jitter_paramters=self.config.augmentation.jittering)
+        sample = ha_augment_sample(sample, jitter_paramters=self.config.augmentation.jittering,
+                                   patch_ratio=self.config.augmentation.patch_ratio,
+                                   scaling_amplitude=self.config.augmentation.scaling_amplitude, max_angle=pi/self.config.augmentation.max_angle_div)
         sample = a8x_normalize_sample(sample)
 
         return sample
@@ -76,7 +78,9 @@ class image_transforms():
         sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
         sample = spatial_augment_sample(sample)
         sample = to_tensor_sample(sample)
-        sample = ha_augment_sample(sample, jitter_paramters=self.config.augmentation.jittering)
+        sample = ha_augment_sample(sample, jitter_paramters=self.config.augmentation.jittering,
+                                   patch_ratio=self.config.augmentation.patch_ratio,
+                                   scaling_amplitude=self.config.augmentation.scaling_amplitude, max_angle=pi/self.config.augmentation.max_angle_div)
         sample = a8x_normalize_sample(sample)
 
         return sample
@@ -85,7 +89,10 @@ class image_transforms():
         sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
         sample = spatial_augment_sample(sample)
         sample = to_tensor_sample(sample)
-        sample = ha_augment_sample(sample, jitter_paramters=self.config.augmentation.jittering)
+        sample = ha_augment_sample(sample, jitter_paramters=self.config.augmentation.jittering,
+                                   patch_ratio=self.config.augmentation.patch_ratio,
+                                   scaling_amplitude=self.config.augmentation.scaling_amplitude,
+                                   max_angle=pi/self.config.augmentation.max_angle_div)
         sample = normalize_sample(sample)
 
         return sample
