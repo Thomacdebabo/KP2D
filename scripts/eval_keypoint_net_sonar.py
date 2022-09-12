@@ -14,7 +14,8 @@ from kp2dsonar.datasets.sonarsim import SonarSimLoader
 from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net_sonar
 from kp2dsonar.networks.keypoint_net import KeypointNet
 from kp2dsonar.networks.keypoint_resnet import KeypointResnet
-from kp2dsonar.datasets.augmentations import to_tensor_sonar_sample, resize_sample
+from kp2dsonar.datasets.augmentations import resize_sample
+from kp2dsonar.datasets.augmentations_sonar import to_tensor_sonar_sample
 from kp2dsonar.datasets.noise_model import NoiseUtility
 import glob
 

@@ -54,27 +54,6 @@ def resize_sample(sample, image_shape, image_interpolation=Image.ANTIALIAS):
     sample['image'] = image_transform(sample['image'])
     return sample
 
-
-def to_tensor_sonar_sample(sample, tensor_type='torch.FloatTensor'):
-    """
-    Casts the keys of sample to tensors.
-
-    Parameters
-    ----------
-    sample : dict
-        Input sample
-    tensor_type : str
-        Type of tensor we are casting to
-
-    Returns
-    -------
-    sample : dict
-        Sample with keys cast as tensors
-    """
-    sample['image'] = sample['image'].type(tensor_type)
-    sample['image_aug'] = sample['image_aug'].type(tensor_type)
-    return sample
-
 def to_tensor_sample(sample, tensor_type='torch.FloatTensor'):
     """
     Casts the keys of sample to tensors.

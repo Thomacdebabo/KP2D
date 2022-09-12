@@ -6,13 +6,13 @@ import argparse
 import torch
 from termcolor import colored
 from torch.utils.data import DataLoader
-
+from kp2dsonar.utils.config import parse_train_file
 from kp2dsonar.datasets.patches_dataset import PatchesDataset
 from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net
 from kp2dsonar.networks.keypoint_net import KeypointNet
 from kp2dsonar.networks.keypoint_resnet import KeypointResnet
 from kp2dsonar.networks.ai84_keypointnet import ai84_keypointnet
-
+from kp2dsonar.utils.train_keypoint_net_utils import (setup_datasets_and_dataloaders_eval)
 def _load_model(args):
     checkpoint = torch.load(args.pretrained_model)
     model_args = checkpoint['config']['model']['params']
@@ -52,7 +52,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--pretrained_model", type=str, help="pretrained model path")
     parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
-
+    config = parse_train_file(r'D:\PycharmProjects\KP2D\kp2dsonar\configs\v4.yaml')
     args = parser.parse_args()
     keypoint_net, mode, net_type = _load_model(args)
 
@@ -61,16 +61,17 @@ def main():
     eval_params += [{'res': (640, 480), 'top_k': 1000, }]
 
     for params in eval_params:
-        hp_dataset = PatchesDataset(root_dir=args.input_dir, use_color=True,
-                                    output_shape=params['res'], type='a', mode=mode)
-        data_loader = DataLoader(hp_dataset,
-                                 batch_size=1,
-                                 pin_memory=False,
-                                 shuffle=False,
-                                 num_workers=8,
-                                 worker_init_fn=None,
-                                 sampler=None)
-
+        # hp_dataset = PatchesDataset(root_dir=args.input_dir, use_color=True,
+        #                             output_shape=params['res'], type='a', mode=mode)
+        # data_loader = DataLoader(hp_dataset,
+        #                          batch_size=1,
+        #                          pin_memory=False,
+        #                          shuffle=False,
+        #                          num_workers=8,
+        #                          worker_init_fn=None,
+        #                          sampler=None)
+        config.datasets.augmentation.image_shape = params['res']
+        hp_dataset, data_loader = setup_datasets_and_dataloaders_eval(config.datasets)
         print(colored('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']),'green'))
         rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net(
             data_loader,

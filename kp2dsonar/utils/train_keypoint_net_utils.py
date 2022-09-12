@@ -10,7 +10,8 @@ from torch.utils.data import ConcatDataset, DataLoader
 
 from kp2dsonar.datasets.augmentations import (ha_augment_sample, resize_sample,
                                               spatial_augment_sample,
-                                              to_tensor_sample, to_tensor_sonar_sample, normalize_sample, a8x_normalize_sample)
+                                              to_tensor_sample, normalize_sample, a8x_normalize_sample)
+from kp2dsonar.datasets.augmentations_sonar import to_tensor_sonar_sample
 from kp2dsonar.datasets.coco import COCOLoader
 from kp2dsonar.datasets.patches_dataset import PatchesDataset
 from kp2dsonar.datasets.sonarsim import SonarSimLoader
