@@ -359,8 +359,8 @@ def gradient_curve(x,a=0.25, x0=0.5):
 
 def create_artifact(shape, device, artifact_amp, artifact_width):
     artifact = torch.zeros(shape).to(device)
-    attenuation = torch.linspace(artifact_amp  * torch.rand(1).item()*0.5, artifact_amp, shape[3]) * (
-                torch.rand(shape[3]))
+    attenuation = torch.linspace(artifact_amp  * torch.rand(1).item()*0.5, artifact_amp, shape[2]) * (
+                torch.rand(shape[2]))
 
     noise = torch.clip((torch.ones(shape).to(device)) * attenuation[:, None].to(device), 0,
                        artifact_amp)

@@ -17,7 +17,7 @@ model:
         do_cross: True
         descriptor_loss: True
         debug: True
-        keypoint_net_type: "KeypointResnet"
+        keypoint_net_type: "KeypointNet"
 
 wandb:
     dry_run: True
@@ -42,7 +42,7 @@ datasets:
         normalize: True
         amp: 130
         artifact_amp: 200
-        image_shape: (512,512)
+        image_shape: (320,240)
 
     train:
         path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"

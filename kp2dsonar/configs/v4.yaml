@@ -8,7 +8,7 @@
 
 model:
     params:
-        debug: False
+        debug: True
         use_color: True
         with_io: True
         do_upsample: True
@@ -23,7 +23,7 @@ datasets:
     augmentation:
         mode: 'quantized_default'
         jittering: (0.5, 0.5, 0.2, 0.05)
-        image_shape: (320, 240)
+        image_shape: (240, 320)
         patch_ratio: 0.7
         scaling_amplitude: 0.2
         max_angle_div: 2
