@@ -43,9 +43,9 @@ datasets:
         amp: 70
         artifact_amp: 200
     train:
-        path: '../../../scratch/rueeggth/dataset/SonarDataSets/Simulated'
+        path: '/cluster/scratch/rueeggth/dataset/SonarDataSets/Simulated'
         num_workers: 16
         batch_size: 4
     val:
-        path: "../Dataset/HPatches/hpatches-sequences-release/"
+        path: "/cluster/home/rueeggth/Dataset/HPatches/hpatches-sequences-release/"
 
