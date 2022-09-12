@@ -16,7 +16,7 @@ model:
         do_upsample: True
         do_cross: True
         descriptor_loss: True
-        debug: True
+        debug: False
         keypoint_net_type: "KeypointNet"
 
 wandb:
