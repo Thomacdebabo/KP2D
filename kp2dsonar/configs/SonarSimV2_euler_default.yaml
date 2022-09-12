@@ -7,7 +7,7 @@
 #    + descriptor loss
 
 arch:
-    epochs: 10
+    epochs: 20
 
 model:
     params:
