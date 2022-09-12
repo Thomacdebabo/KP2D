@@ -3,9 +3,9 @@ from kp2dsonar.datasets.augmentations import sample_homography, warp_homography
 from math import pi
 import torch
 from kp2dsonar.utils.image import image_grid
+import torchvision.transforms as transforms
 
-
-
+from PIL import Image
 def pol_2_cart(source, fov, r_min, r_max, epsilon=1e-14, f= 1, a = 0):
     """
     Transform coordinate grid from polar coordinates to cartesian coordinates
@@ -339,6 +339,58 @@ class NoiseUtility():
     def cart_2_pol_torch(self, img):
         return torch.nn.functional.grid_sample(img, self.map, mode='bilinear', padding_mode='zeros',
                                                 align_corners=True)
+
+    def fast_image_transform(self, sample):
+        target_img = sample['image']
+        transforms_image = transforms.Compose([transforms.Resize(self.shape, interpolation=Image.ANTIALIAS),
+                            transforms.ToTensor()])
+        target_img =  transforms_image(target_img).unsqueeze(0)
+        target_img = torch.nn.functional.grid_sample(target_img, self.map_inv, mode='bilinear', padding_mode='zeros',
+                                        align_corners=True)
+
+        _, _, H, W = target_img.shape
+
+        homography = sample_homography([H, W], perspective=False, scaling=True,
+                                       patch_ratio=self.patch_ratio,
+                                       scaling_amplitude=self.scaling_amplitude,
+                                       max_angle=self.max_angle)
+        homography = torch.from_numpy(homography).float().to(self.device)
+        source_grid = image_grid(1, H, W,
+                                 dtype=target_img.dtype,
+                                 device=self.device,
+                                 ones=False, normalized=True).clone().permute(0, 2, 3, 1)
+
+        source_warped = warp_homography(source_grid, homography)
+        source_img = torch.nn.functional.grid_sample(target_img, source_warped, align_corners=True)
+
+        amp = self.amp*(0.3+torch.rand(1)).item()
+        artifact_amp = self.artifact_amp*torch.rand(1).item()
+
+        target_img = target_img[:,0,:,:].unsqueeze(0)
+        source_img = source_img[:,0,:,:].unsqueeze(0)
+
+        target_img = self.filter(target_img*255., amp=amp,artifact_amp=artifact_amp).to(target_img.dtype)/255.
+        source_img = self.filter(source_img*255., amp=amp, artifact_amp=artifact_amp).to(source_img.dtype)/255.
+
+        target_img = torch.nn.functional.grid_sample(target_img, self.map, mode='bilinear', padding_mode='zeros',
+                                        align_corners=True)
+
+        source_img = torch.nn.functional.grid_sample(source_img, self.map, mode='bilinear', padding_mode='zeros',
+                                        align_corners=True)
+        target_img = torch.stack((target_img, target_img, target_img), axis=0)
+        source_img = torch.stack((source_img, source_img, source_img), axis=0)
+
+        target_img = torch.sub(target_img, 0.5)
+        target_img = torch.mul(target_img, 2.0)
+
+        source_img = torch.sub(source_img, 0.5)
+        source_img = torch.mul(source_img, 2.0)
+
+        sample['image'] = target_img.squeeze()
+        sample['image_aug'] = source_img.squeeze()
+        sample['homography'] = homography
+        return sample
+
 
 # Static noise adding functinos
 #TODO: check if we should apply rowwise attenuation in polar or cartesian coordinates

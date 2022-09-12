@@ -34,9 +34,10 @@ class image_transforms():
     def _sonar_sim(self,sample):
 
         sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+
         sample = to_tensor_sample(sample)
         sample = self.noise_util.pol_2_cart_sample(sample)
-        #sample = self.noise_util.augment_sample(sample)
+        sample = spatial_augment_sample(sample)
         sample = self.noise_util.augment_sample(sample)
 
         sample = self.noise_util.filter_sample(sample)
@@ -211,7 +212,7 @@ class TrainerSonar(Trainer):
         self.train_dataset, self.train_loader = setup_datasets_and_dataloaders_sonar(config.datasets, self.noise_util)
         self.hp_dataset, self.data_loader = setup_datasets_and_dataloaders_eval_sonar(config.datasets, self.noise_util)
     def init_model(self,config):
-        self.model = KeypointNetwithIOLoss(mode='sonar_sim',noise_util=self.noise_util, **config.model.params)
+        self.model = KeypointNetwithIOLoss(mode=config.datasets.augmentation.mode,noise_util=self.noise_util, **config.model.params)
     def _evaluate(self, completed_epoch, params):
         use_color = self.config.model.params.use_color
         result_dict = evaluate_keypoint_net_sonar(self.data_loader,
