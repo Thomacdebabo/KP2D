@@ -1,6 +1,6 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
 
-
+from kp2dsonar.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
 from math import pi
 from torch.utils.data import ConcatDataset, DataLoader
 
@@ -11,9 +11,12 @@ from kp2dsonar.datasets.augmentations_sonar import to_tensor_sonar_sample
 
 from kp2dsonar.datasets.sonarsim import SonarSimLoader
 from kp2dsonar.datasets.noise_model import NoiseUtility
-
+from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net_sonar
 
 from kp2dsonar.utils.train_keypoint_net_utils import (_set_seeds, Trainer, model_submodule)
+def _print_result(result_dict):
+    for k in result_dict.keys():
+        print("%s: %.3f" %( k, result_dict[k]))
 
 
 global _worker_init_fn
@@ -30,16 +33,19 @@ class image_transforms():
 
     def _sonar_sim(self,sample):
 
-        # sample = resize_sample(sample, image_shape=config.augmentation.image_shape)
-
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+        sample = to_tensor_sample(sample)
         sample = self.noise_util.pol_2_cart_sample(sample)
+        #sample = self.noise_util.augment_sample(sample)
         sample = self.noise_util.augment_sample(sample)
 
         sample = self.noise_util.filter_sample(sample)
         sample = self.noise_util.cart_2_pol_sample(sample)
+        sample = self.noise_util.squeeze(sample)
+        sample = self.noise_util.sample_2_RGB(sample)
         if self.noise_util.post_noise:
             sample = self.noise_util.add_noise_function(sample)
-        sample = to_tensor_sonar_sample(sample)
+
         sample = normalize_sample(sample)
 
         return sample
@@ -65,6 +71,19 @@ class image_transforms():
         sample = self.noise_util.cart_2_pol_sample(sample)
         sample = to_tensor_sonar_sample(sample)
         sample = a8x_normalize_sample(sample)
+
+        return sample
+
+    def _default(self, sample):
+
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+        sample = spatial_augment_sample(sample)
+        sample = to_tensor_sample(sample)
+        sample = ha_augment_sample(sample, jitter_paramters=self.config.augmentation.jittering,
+                                   patch_ratio=self.config.augmentation.patch_ratio,
+                                   scaling_amplitude=self.config.augmentation.scaling_amplitude,
+                                   max_angle=pi/self.config.augmentation.max_angle_div)
+        sample = normalize_sample(sample)
 
         return sample
 
@@ -106,6 +125,11 @@ class image_transforms_eval():
         sample = to_tensor_sample(sample)
         sample = ha_augment_sample(sample)
         sample = a8x_normalize_sample(sample)
+        return sample
+    def _default(self, sample):
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+        sample = to_tensor_sample(sample)
+        sample = normalize_sample(sample)
         return sample
 
     def __call__(self, sample):
@@ -186,7 +210,8 @@ class TrainerSonar(Trainer):
     def init_datasets(self, config):
         self.train_dataset, self.train_loader = setup_datasets_and_dataloaders_sonar(config.datasets, self.noise_util)
         self.hp_dataset, self.data_loader = setup_datasets_and_dataloaders_eval_sonar(config.datasets, self.noise_util)
-
+    def init_model(self,config):
+        self.model = KeypointNetwithIOLoss(mode='sonar_sim',noise_util=self.noise_util, **config.model.params)
     def _evaluate(self, completed_epoch, params):
         use_color = self.config.model.params.use_color
         result_dict = evaluate_keypoint_net_sonar(self.data_loader,

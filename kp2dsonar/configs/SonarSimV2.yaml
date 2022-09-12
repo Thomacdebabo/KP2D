@@ -34,7 +34,7 @@ datasets:
         super_resolution: 1
         preprocessing_gradient: True
         add_row_noise: True
-        add_normal_noise: True
+        add_normal_noise: False
         add_sparkle_noise: True
         add_artifact: True
         blur: True
@@ -42,7 +42,6 @@ datasets:
         normalize: True
         amp: 130
         artifact_amp: 200
-        image_shape: (320,240)
 
     train:
         path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"

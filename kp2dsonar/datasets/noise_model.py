@@ -251,9 +251,8 @@ class NoiseUtility():
         :param sample: dict containing an image to be augmented
         :return: dict containing original image, homography and augmented image
         """
-        orig_type = sample['image'].dtype
-        img = sample['image']
-        _,_,H, W = img.shape
+        target_img = sample['image'].unsqueeze(0)
+        _,_,H, W = target_img.shape
 
         homography = sample_homography([H, W], perspective=False, scaling = True,
                                        patch_ratio=self.patch_ratio,
@@ -261,15 +260,15 @@ class NoiseUtility():
                                        max_angle=self.max_angle)
         homography = torch.from_numpy(homography).float().to(self.device)
         source_grid = image_grid(1, H, W,
-                                 dtype=img.dtype,
+                                 dtype=target_img.dtype,
                                  device=self.device,
                                  ones=False, normalized=True).clone().permute(0, 2, 3, 1)
 
         source_warped = warp_homography(source_grid, homography)
-        source_img = torch.nn.functional.grid_sample(img, source_warped, align_corners=True)
+        source_img = torch.nn.functional.grid_sample(target_img, source_warped, align_corners=True)
 
-        sample['image'] = img.to(orig_type)
-        sample['image_aug'] = source_img.to(orig_type)
+        sample['image'] = target_img.squeeze()
+        sample['image_aug'] = source_img.squeeze()
         sample['homography'] = homography
         return sample
 
@@ -280,17 +279,19 @@ class NoiseUtility():
         :param sample: dict containing original image, homography and augmented image
         :return: dict with same keys as input
         """
-        img = sample['image']
-        img_aug = sample['image_aug']
+        img = sample['image'][0].unsqueeze(0).unsqueeze(0)
+        img_aug = sample['image_aug'][0].unsqueeze(0).unsqueeze(0)
 
         # adds some randomness to amplitude of noise
         amp = self.amp*(0.3+torch.rand(1)).item()
         artifact_amp = self.artifact_amp*torch.rand(1).item()
 
-        sample['image'] = self.filter(img, amp=amp,artifact_amp=artifact_amp).to(img.dtype)
-        sample['image_aug'] = self.filter(img_aug, amp=amp, artifact_amp=artifact_amp).to(img_aug.dtype)
+        sample['image'] = self.filter(img*255., amp=amp,artifact_amp=artifact_amp).to(img.dtype)/255.
+        sample['image_aug'] = self.filter(img_aug*255., amp=amp, artifact_amp=artifact_amp).to(img_aug.dtype)/255.
         return sample
-
+    def sample_2_torch(self,sample):
+        sample['image'] = to_torch(np.array(sample['image'])[:, :, 0], device=self.device)
+        return sample
     def pol_2_cart_sample(self, sample):
         """
         Transforms sample from polar to cartesian coordinates
@@ -298,9 +299,9 @@ class NoiseUtility():
         :param sample: dict containing an image to be transformed to cartesian coordinates
         :return:
         """
-        img = to_torch(np.array(sample['image'])[:,:,0], device= self.device)
+        img = sample['image'].unsqueeze(0)
         mapped = self.pol_2_cart_torch(img)
-        sample['image'] = mapped.to(img.dtype)
+        sample['image'] = mapped.to(img.dtype).squeeze()
         return sample
 
     def cart_2_pol_sample(self, sample):
@@ -313,14 +314,22 @@ class NoiseUtility():
         img = sample['image']
         img_aug = sample['image_aug']
 
-        mapped = self.cart_2_pol_torch(img).squeeze(0).squeeze(0)
-        mapped_aug = self.cart_2_pol_torch(img_aug).squeeze(0).squeeze(0)
-
-        sample['image'] = torch.stack((mapped, mapped, mapped), axis=0).to(img.dtype)
-        sample['image_aug'] = torch.stack((mapped_aug, mapped_aug, mapped_aug), axis=0).to(img.dtype)
+        sample['image'] = self.cart_2_pol_torch(img)
+        sample['image_aug'] = self.cart_2_pol_torch(img_aug)
 
         return sample
+    def squeeze(self, sample):
 
+        sample['image'] = sample['image'].squeeze(0).squeeze(0)
+        sample['image_aug'] = sample['image_aug'].squeeze(0).squeeze(0)
+        return sample
+
+    def sample_2_RGB(self, sample):
+        img = sample['image']
+        img_aug = sample['image_aug']
+        sample['image'] = torch.stack((img, img, img), axis=0)
+        sample['image_aug'] = torch.stack((img_aug, img_aug, img_aug), axis=0)
+        return sample
     # torch implementations of cartesian/polar conversions
 
     def pol_2_cart_torch(self, img):

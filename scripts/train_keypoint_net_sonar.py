@@ -8,12 +8,6 @@ from kp2dsonar.utils.train_keypoint_net_utils_sonar import TrainerSonar
 from kp2dsonar.utils.train_keypoint_net_utils import _set_seeds,parse_args
 
 
-def _print_result(result_dict):
-    for k in result_dict.keys():
-        print("%s: %.3f" %( k, result_dict[k]))
-
-
-
 def main(file):
     """
     KP2D training script.

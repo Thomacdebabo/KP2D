@@ -180,7 +180,7 @@ class Trainer:
     This class implements a simple training pipeline. It makes the code easier to read and more structured.
     """
     def __init__(self, config):
-        self.model = KeypointNetwithIOLoss(mode='default', **config.model.params)
+        self.init_model(config)
         self.optimizer = optim.Adam(self.model.optim_params)
         self.init_datasets(config)
         self.summary = {"evaluation": {}, "train": {}}
@@ -195,7 +195,8 @@ class Trainer:
     def init_datasets(self, config):
         self.train_dataset, self.train_loader = setup_datasets_and_dataloaders(config.datasets)
         self.hp_dataset, self.data_loader = setup_datasets_and_dataloaders_eval(config.datasets)
-
+    def init_model(self,config):
+        self.model = KeypointNetwithIOLoss(mode='default', **config.model.params)
     def _evaluate(self, completed_epoch, params):
 
         use_color = self.config.model.params.use_color
