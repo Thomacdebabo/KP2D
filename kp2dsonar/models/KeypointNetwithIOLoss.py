@@ -256,7 +256,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
         self.cell = 8 # Size of each output cell. Keep this fixed.
         self.border_remove = 4 # Remove points this close to the border.
-        self.top_k2 = 300
+        self.top_k2 = 500
         self.relax_field = 4
 
         self.debug = debug
