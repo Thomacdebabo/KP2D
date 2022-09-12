@@ -5,10 +5,8 @@
 #    + descriptor upsampling
 #    + cross-border keypoints
 #    + descriptor loss
-
 arch:
-    epochs: 10
-
+    epochs: 50
 model:
     params:
         use_color: True
@@ -17,7 +15,8 @@ model:
         do_cross: True
         descriptor_loss: True
         debug: True
-        keypoint_net_type: "KeypointNet"
+        keypoint_net_type: "KeypointResnet"
+    checkpoint_path: '../../../scratch/rueeggth/kp2dsonar'
 
 wandb:
     dry_run: True
@@ -28,26 +27,23 @@ datasets:
         fov: 60
         r_min: 0.1
         r_max: 5.0
-        patch_ratio: 0.8
-        scaling_amplitude: 0.4
-        max_angle_div: 4
+        patch_ratio: 0.9
+        scaling_amplitude: 0.2
+        max_angle_div: 2
         super_resolution: 1
-        preprocessing_gradient: True
-        add_row_noise: True
-        add_normal_noise: False
+        preprocessing_gradient: False
+        add_row_noise: False
+        add_normal_noise: True
         add_sparkle_noise: False
-        add_artifact: True
-        blur: True
+        add_artifact: False
+        blur: False
         add_speckle_noise: False
         normalize: True
         amp: 70
-        artifact_amp: 100
-
+        artifact_amp: 200
     train:
         path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"
-        num_workers: 4
+        num_workers: 8
         batch_size: 4
-
     val:
         path: "D:/MachineLearning/SonarData/SonarDataSets/SimEval"
-

@@ -31,7 +31,7 @@ datasets:
         r_max: 5.0
         patch_ratio: 0.7
         scaling_amplitude: 0.2
-        max_angle_div: 2
+        max_angle_div: 4
         super_resolution: 1
         preprocessing_gradient: True
         add_row_noise: True

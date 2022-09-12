@@ -26,8 +26,8 @@ datasets:
         fov: 60
         r_min: 0.1
         r_max: 5.0
-        patch_ratio: 0.9
-        scaling_amplitude: 0.25
+        patch_ratio: 0.7
+        scaling_amplitude: 0.5
         max_angle_div: 4
         super_resolution: 2
         preprocessing_gradient: True

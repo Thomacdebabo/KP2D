@@ -121,12 +121,9 @@ def evaluate_keypoint_net_sonar(data_loader, keypoint_net, noise_util, output_sh
 
     with torch.no_grad():
         for i, sample in tqdm(enumerate(data_loader), desc="evaluate_keypoint_net"):
-            if use_color:
-                image = to_color_normalized_sonar(sample['image']).to(device)
-                warped_image = to_color_normalized_sonar(sample['image_aug']).to(device)
-            else:
-                image = to_gray_normalized(sample['image']).to(device)
-                warped_image = to_gray_normalized(sample['image_aug']).to(device)
+
+            image = to_color_normalized_sonar(sample['image']).to(keypoint_net.device)
+            warped_image = to_color_normalized_sonar(sample['image_aug']).to(keypoint_net.device)
 
             score_1, coord_1, desc1 = keypoint_net(image)
             score_2, coord_2, desc2 = keypoint_net(warped_image)

@@ -37,17 +37,17 @@ class image_transforms():
 
         sample = to_tensor_sample(sample)
         sample = self.noise_util.pol_2_cart_sample(sample)
-        sample = spatial_augment_sample(sample)
+        #sample = spatial_augment_sample(sample)
         sample = self.noise_util.augment_sample(sample)
 
         sample = self.noise_util.filter_sample(sample)
         sample = self.noise_util.cart_2_pol_sample(sample)
         sample = self.noise_util.squeeze(sample)
         sample = self.noise_util.sample_2_RGB(sample)
-        if self.noise_util.post_noise:
-            sample = self.noise_util.add_noise_function(sample)
+        # if self.noise_util.post_noise:
+        #     sample = self.noise_util.add_noise_function(sample)
 
-        sample = normalize_sample(sample)
+        #ample = normalize_sample(sample)
 
         return sample
 
@@ -94,22 +94,27 @@ class image_transforms():
 #Not yet in use
 class image_transforms_eval():
     def __init__(self, noise_util,config):
-        self.angles = noise_util
+        self.noise_util = noise_util
         self.config = config
         mode = config.augmentation.mode
         self.transform = getattr(self,  "_" + mode)
 
     def _sonar_sim(self,sample):
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
 
+        sample = to_tensor_sample(sample)
         sample = self.noise_util.pol_2_cart_sample(sample)
+        sample = spatial_augment_sample(sample)
         sample = self.noise_util.augment_sample(sample)
 
         sample = self.noise_util.filter_sample(sample)
         sample = self.noise_util.cart_2_pol_sample(sample)
+        sample = self.noise_util.squeeze(sample)
+        sample = self.noise_util.sample_2_RGB(sample)
         if self.noise_util.post_noise:
             sample = self.noise_util.add_noise_function(sample)
-        sample = to_tensor_sonar_sample(sample)
 
+        sample = normalize_sample(sample)
 
         return sample
 
@@ -217,6 +222,7 @@ class TrainerSonar(Trainer):
         use_color = self.config.model.params.use_color
         result_dict = evaluate_keypoint_net_sonar(self.data_loader,
                                                   model_submodule(self.model).keypoint_net,
+                                                  self.noise_util,
                                                   output_shape=params['res'],
                                                   top_k=params['top_k'],
                                                   use_color=use_color)
