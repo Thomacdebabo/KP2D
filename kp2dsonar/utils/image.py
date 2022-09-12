@@ -92,7 +92,6 @@ def to_gray_normalized(images):
     assert len(images.shape) == 4
     images -= 0.5
     images *= 2.0
-    #images *= 0.225 #This is very strange #TODO: remove or do *2 instead depending on how the normalization is supposed to go
     normalized_images = images.mean(1).unsqueeze(1) 
     return normalized_images
 
@@ -111,8 +110,6 @@ def to_color_normalized(images):
         Normalized grayscale images.
     """
     assert len(images.shape) == 4
-    print("debug")
-    print(images.max())
     images -= 0.5
     images *= 2.0
     #images *= 0.225
