@@ -47,6 +47,7 @@ def main(file):
         warnings.warn('Sonar Simulator mode cannot be used in this script. Please use train_keypoint_net_sonar instead. default will be used instead.')
 
     trainer = Trainer(config)
+    trainer.evaluation(0)
     trainer.train()
 
 if __name__ == '__main__':
