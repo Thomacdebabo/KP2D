@@ -11,10 +11,7 @@ from kp2dsonar.networks.keypoint_net import KeypointNet
 from kp2dsonar.networks.keypoint_resnet import KeypointResnet
 from kp2dsonar.networks.ai84_keypointnet import ai84_keypointnet
 from kp2dsonar.utils.keypoints import draw_keypoints
-from kp2dsonar.datasets.noise_model import pol_2_cart, cart_2_pol
-from kp2dsonar.utils.logging import timing
-from kp2dsonar.utils.image import (image_grid, to_color_normalized,
-                              to_gray_normalized)
+
 
 def build_descriptor_loss(source_des, target_des, source_points, tar_points, tar_points_un, keypoint_mask=None, relax_field=8,epsilon=1e-8, eval_only=False):
     """Desc Head Loss, per-pixel level triplet loss from https://arxiv.org/pdf/1902.11046.pdf..
@@ -104,76 +101,8 @@ def build_descriptor_loss(source_des, target_des, source_points, tar_points, tar
 
     return loss, recall
 
-def warp_homography_batch(noise_util, sources, homographies):
-    """Batch warp keypoints given homographies.
 
-    Parameters
-    ----------
-    sources: torch.Tensor (B,H,W,C)
-        Keypoints vector.
-    homographies: torch.Tensor (B,3,3)
-        Homographies.
 
-    Returns
-    -------
-    warped_sources: torch.Tensor (B,H,W,C)
-        Warped keypoints vector.
-    """
-    B, H, W, _ = sources.shape
-    warped_sources = []
-
-    for b in range(B):
-        source = sources[b].clone()
-        source = source.view(-1, 2)
-
-        source = torch.addmm(homographies[b, :, 2], source, homographies[b, :, :2].t())
-        source.mul_(1 / source[:, 2].unsqueeze(1))
-
-        source = source[:, :2].contiguous().view(H, W, 2)
-        warped_sources.append(source)
-    return torch.stack(warped_sources, dim=0)
-
-def warp_homography_batch_sonar(noise_util, sources, homographies):
-    """Batch warp keypoints given homographies.
-
-    Parameters
-    ----------
-    sources: torch.Tensor (B,H,W,C)
-        Keypoints vector.
-    homographies: torch.Tensor (B,3,3)
-        Homographies.
-
-    Returns
-    -------
-    warped_sources: torch.Tensor (B,H,W,C)
-        Warped keypoints vector.
-    """
-    B, H, W, _ = sources.shape
-    warped_sources = []
-
-    for b in range(B):
-
-        source = sources[b].clone()
-        source = source.view(-1,2)
-
-        source = pol_2_cart(source.unsqueeze(0),
-                            noise_util.fov,
-                            noise_util.r_min,
-                            noise_util.r_max).squeeze(0)
-
-        source = torch.addmm(homographies[b,:,2], source, homographies[b,:,:2].t())
-        source.mul_(1/source[:,2].unsqueeze(1))
-
-        source = cart_2_pol(source.unsqueeze(0),
-                            noise_util.fov,
-                            noise_util.r_min,
-                            noise_util.r_max).squeeze(0)
-
-        source = source[:,:2].contiguous().view(H,W,2)
-
-        warped_sources.append(source)
-
-    return torch.stack(warped_sources, dim=0)
 class KeypointNetwithIOLoss(torch.nn.Module):
     """
     Model class encapsulating the KeypointNet and the IONet.
@@ -204,13 +133,11 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         Extra parameters
     """
     def __init__(
-        self, noise_util=None, keypoint_loss_weight=1.0, descriptor_loss_weight=2.0, score_loss_weight=1.0,
+        self, keypoint_loss_weight=1.0, descriptor_loss_weight=2.0, score_loss_weight=1.0,
         keypoint_net_learning_rate=0.001, with_io=True, use_color=True, do_upsample=True, 
-        do_cross=True, descriptor_loss=True, with_drop=True, keypoint_net_type='KeypointNet',device='cpu', mode = 'sonar_sim', debug = 'False', **kwargs):
+        do_cross=True, descriptor_loss=True, with_drop=True, keypoint_net_type='KeypointNet',device='cpu', debug = 'False', **kwargs):
 
         super().__init__()
-        self.noise_util = noise_util
-        self.mode = mode
         self.device = device
         self.keypoint_loss_weight = keypoint_loss_weight
         self.descriptor_loss_weight = descriptor_loss_weight
@@ -249,10 +176,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
         self.train_metrics = {}
         self.vis = {}
-        if self.mode == 'sonar_sim' or self.mode == 'quantized_sonar':
-            self.warp_batch = warp_homography_batch_sonar
-        else:
-            self.warp_batch = warp_homography_batch
+
         # if torch.cuda.current_device() == 0:
         #     print('KeypointNetwithIOLoss:: with io {} with descriptor loss {}'.format(self.with_io, self.descriptor_loss))
 
@@ -297,7 +221,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         target_uv_norm = _normalize_uv_coordinates(target_uv_pred, H, W)
         source_uv_norm = _normalize_uv_coordinates(source_uv_pred, H, W)
 
-        source_uv_warped_norm = self.warp_batch(self.noise_util,source_uv_norm, homography)
+        source_uv_warped_norm = self._warp_homography_batch(source_uv_norm, homography)
         source_uv_warped = _denormalize_uv_coordinates(source_uv_warped_norm, H, W)
 
         # Border mask
@@ -441,6 +365,34 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
         return int(inlier_mask.sum() > 10 )*torch.nn.functional.mse_loss(inlier_pred, inlier_gt)
 
+    def _warp_homography_batch(self, sources, homographies):
+        """Batch warp keypoints given homographies.
+
+        Parameters
+        ----------
+        sources: torch.Tensor (B,H,W,C)
+            Keypoints vector.
+        homographies: torch.Tensor (B,3,3)
+            Homographies.
+
+        Returns
+        -------
+        warped_sources: torch.Tensor (B,H,W,C)
+            Warped keypoints vector.
+        """
+        B, H, W, _ = sources.shape
+        warped_sources = []
+
+        for b in range(B):
+            source = sources[b].clone()
+            source = source.view(-1, 2)
+
+            source = torch.addmm(homographies[b, :, 2], source, homographies[b, :, :2].t())
+            source.mul_(1 / source[:, 2].unsqueeze(1))
+
+            source = source[:, :2].contiguous().view(H, W, 2)
+            warped_sources.append(source)
+        return torch.stack(warped_sources, dim=0)
 
 def _normalize_uv_coordinates(uv_pred, H, W):
     uv_norm = uv_pred.clone()

@@ -196,7 +196,7 @@ class Trainer:
         self.train_dataset, self.train_loader = setup_datasets_and_dataloaders(config.datasets)
         self.hp_dataset, self.data_loader = setup_datasets_and_dataloaders_eval(config.datasets)
     def init_model(self,config):
-        self.model = KeypointNetwithIOLoss(mode='default', **config.model.params)
+        self.model = KeypointNetwithIOLoss(**config.model.params)
     def _evaluate(self, completed_epoch, params):
 
         use_color = self.config.model.params.use_color

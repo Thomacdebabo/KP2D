@@ -1,6 +1,6 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
 
-from kp2dsonar.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
+from kp2dsonar.models.KeypointNetwithIOLossSonar import KeypointNetWithIOLossSonar
 from math import pi
 from torch.utils.data import ConcatDataset, DataLoader
 
@@ -227,7 +227,7 @@ class TrainerSonar(Trainer):
         self.train_dataset, self.train_loader = setup_datasets_and_dataloaders_sonar(config.datasets, self.noise_util)
         self.hp_dataset, self.data_loader = setup_datasets_and_dataloaders_eval_sonar(config.datasets, self.noise_util)
     def init_model(self,config):
-        self.model = KeypointNetwithIOLoss(mode=config.datasets.augmentation.mode,noise_util=self.noise_util, **config.model.params)
+        self.model = KeypointNetWithIOLossSonar(self.noise_util, **config.model.params)
     def _evaluate(self, completed_epoch, params):
         use_color = self.config.model.params.use_color
         result_dict = evaluate_keypoint_net_sonar(self.data_loader,
