@@ -1,6 +1,6 @@
 from setuptools import setup
 
 
-setup(name='kp2dsonar',
+setup(name='kp2d',
       version="1.0",
-      packages=['kp2dsonar'])
+      packages=['kp2d'])

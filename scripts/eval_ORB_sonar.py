@@ -1,5 +1,5 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
-# Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2dsonar/v4.pth --input_dir /data/datasets/kp2dsonar/HPatches/
+# Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2d/v4.pth --input_dir /data/datasets/kp2d/HPatches/
 
 import argparse
 
@@ -10,13 +10,13 @@ from datetime import datetime
 from termcolor import colored
 from torch.utils.data import DataLoader
 
-from kp2dsonar.datasets.sonarsim import SonarSimLoader
-from kp2dsonar.evaluation.evaluate import evaluate_ORB_sonar
+from kp2d.datasets.sonarsim import SonarSimLoader
+from kp2d.evaluation.evaluate import evaluate_ORB_sonar
 
-from kp2dsonar.datasets.augmentations import (ha_augment_sample, resize_sample,
-                                              spatial_augment_sample,
-                                              to_tensor_sample, to_tensor_sonar_sample)
-from kp2dsonar.datasets.noise_model import NoiseUtility
+from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
+                                         spatial_augment_sample,
+                                         to_tensor_sample, to_tensor_sonar_sample)
+from kp2d.datasets.noise_model import NoiseUtility
 import cv2
 def parse_args():
 

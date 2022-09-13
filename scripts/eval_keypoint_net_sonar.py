@@ -10,19 +10,19 @@ from datetime import datetime
 from termcolor import colored
 from torch.utils.data import DataLoader
 
-from kp2dsonar.datasets.sonarsim import SonarSimLoader
-from kp2dsonar.evaluation.evaluate import evaluate_keypoint_net_sonar
-from kp2dsonar.networks.keypoint_net import KeypointNet
-from kp2dsonar.networks.keypoint_resnet import KeypointResnet
-from kp2dsonar.networks.ai84_keypointnet import ai84_keypointnet
-from kp2dsonar.datasets.augmentations import resize_sample
-from kp2dsonar.datasets.augmentations_sonar import to_tensor_sonar_sample
-from kp2dsonar.datasets.noise_model import NoiseUtility
+from kp2d.datasets.sonarsim import SonarSimLoader
+from kp2d.evaluation.evaluate import evaluate_keypoint_net_sonar
+from kp2d.networks.keypoint_net import KeypointNet
+from kp2d.networks.keypoint_resnet import KeypointResnet
+from kp2d.networks.ai84_keypointnet import ai84_keypointnet
+from kp2d.datasets.augmentations import resize_sample
+from kp2d.datasets.augmentations_sonar import to_tensor_sonar_sample
+from kp2d.datasets.noise_model import NoiseUtility
 import glob
-from kp2dsonar.datasets.augmentations import (ha_augment_sample, resize_sample,
-                                              spatial_augment_sample,
-                                              to_tensor_sample, normalize_sample, a8x_normalize_sample)
-from kp2dsonar.utils.train_keypoint_net_utils import _set_seeds
+from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
+                                         spatial_augment_sample,
+                                         to_tensor_sample, normalize_sample, a8x_normalize_sample)
+from kp2d.utils.train_keypoint_net_utils import _set_seeds
 def _print_result(result_dict):
     for k in result_dict.keys():
         print("%s: %.3f" %( k, result_dict[k]))
@@ -35,7 +35,7 @@ def parse_args():
         description='Script for KeyPointNet testing',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
-    parser.add_argument("--model_dir", required=False, type=str, help="Directory with models which will get evaluated", default='..\data\models\kp2dsonar')
+    parser.add_argument("--model_dir", required=False, type=str, help="Directory with models which will get evaluated", default='..\data\models\kp2d')
     parser.add_argument("--device", required=False, type=str, help="cuda or cpu", default='cuda')
     parser.add_argument("--top_k", required=False, type=int, help="top-k value", default=300)
     parser.add_argument("--conf_threshold", required=False, type=float, help="Score threshold for keypoint detection", default=0.7)
@@ -213,7 +213,7 @@ class image_transforms():
 def main():
 
     args = parse_args()
-    #Configuration - default: runs over all models found in ..\data\models\kp2dsonar
+    #Configuration - default: runs over all models found in ..\data\models\kp2d
     torch.backends.cudnn.benchmark = True
     model_paths = glob.glob(os.path.join(args.model_dir,"*.ckpt"))
     top_k = args.top_k

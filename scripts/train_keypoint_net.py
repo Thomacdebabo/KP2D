@@ -2,9 +2,9 @@
 
 import os
 import torch
-from kp2dsonar.utils.config import parse_train_file
-from kp2dsonar.utils.logging import printcolor, timing
-from kp2dsonar.utils.train_keypoint_net_utils import (_set_seeds, Trainer, parse_args)
+from kp2d.utils.config import parse_train_file
+from kp2d.utils.logging import printcolor, timing
+from kp2d.utils.train_keypoint_net_utils import (_set_seeds, Trainer, parse_args)
 
 import warnings
 warnings.filterwarnings("ignore")
