@@ -3,8 +3,6 @@ from setuptools import setup
 
 setup(name='kp2d',
       version="2.0",
-      packages=['kp2d'])
+      packages=['kp2d','kp2dsonar'])
 
-setup(name='kp2dsonar',
-      version="2.0",
-      packages=['kp2dsonar'])
+
