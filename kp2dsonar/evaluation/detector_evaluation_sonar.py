@@ -8,7 +8,7 @@ import torch
 import cv2
 import numpy as np
 
-from kp2dsonar.utils.keypoints import warp_keypoints
+from kp2d.utils.keypoints import warp_keypoints
 
 from kp2dsonar.datasets.noise_model import pol_2_cart,cart_2_pol
 

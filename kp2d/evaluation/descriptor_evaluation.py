@@ -8,7 +8,7 @@ from os import path as osp
 import cv2
 import numpy as np
 
-from kp2dsonar.utils.keypoints import warp_keypoints
+from kp2d.utils.keypoints import warp_keypoints
 
 
 def select_k_best(points, descriptors, k):
@@ -159,7 +159,7 @@ def compute_matching_score(data, keep_k_points=1000):
     return ms
 
 
-def compute_homography(data, keep_k_points=1000):
+def compute_homography(data, keep_k_points=1000, debug=False):
     """
     Compute the homography between 2 sets of Keypoints and descriptors inside data.
     Use the homography to compute the correctness metrics (1,3,5).
@@ -239,4 +239,23 @@ def compute_homography(data, keep_k_points=1000):
     correctness3 = float(mean_dist <= 3)
     correctness5 = float(mean_dist <= 5)
 
+    if debug:
+        img_debug = data['image'].copy()+1
+        img_debug = np.ascontiguousarray((img_debug*128).astype(np.uint8).transpose(1,2,0))
+        img_debug = draw_kps(img_debug, m_keypoints, c = (0,0,255))
+        cv2.imshow("hi", img_debug)
+
+        img_debug = data['image_aug'].copy()+1
+        img_debug = np.ascontiguousarray((img_debug*128).astype(np.uint8).transpose(1,2,0))
+        img_debug = draw_kps(img_debug, m_warped_keypoints, c = (255,0,0))
+        cv2.imshow("hi2", img_debug)
+
+        cv2.waitKey(1)
     return correctness1, correctness3, correctness5
+
+
+def draw_kps(img_debug, corners, c = (0, 0, 255)):
+    for pt in corners[:,:2].astype(np.int32):
+        x, y = int(pt[0]), int(pt[1])
+        img_debug = cv2.circle(img_debug, (x,y), 2,  c, -1)
+    return img_debug

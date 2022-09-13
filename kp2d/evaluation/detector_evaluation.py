@@ -8,7 +8,7 @@ from os import path as osp
 import cv2
 import numpy as np
 
-from kp2dsonar.utils.keypoints import warp_keypoints
+from kp2d.utils.keypoints import warp_keypoints
 
 
 def compute_repeatability(data, keep_k_points=300, distance_thresh=3):

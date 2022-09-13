@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
 import torchvision.models as models
-from kp2dsonar.utils.image import image_grid
+from kp2d.utils.image import image_grid
 
 
 def upsample(x):

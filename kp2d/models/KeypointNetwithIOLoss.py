@@ -6,11 +6,12 @@ import torch
 import torch.nn.functional as F
 from matplotlib.cm import get_cmap
 
-from kp2dsonar.networks.inlier_net import InlierNet
-from kp2dsonar.networks.keypoint_net import KeypointNet
-from kp2dsonar.networks.keypoint_resnet import KeypointResnet
-from kp2dsonar.utils.keypoints import draw_keypoints
-from kp2dsonar.datasets.noise_model import pol_2_cart, cart_2_pol
+from kp2d.networks.inlier_net import InlierNet
+from kp2d.networks.keypoint_net import KeypointNet
+from kp2d.networks.keypoint_resnet import KeypointResnet
+from kp2d.networks.ai84_keypointnet import ai84_keypointnet
+from kp2d.utils.keypoints import draw_keypoints
+
 
 def build_descriptor_loss(source_des, target_des, source_points, tar_points, tar_points_un, keypoint_mask=None, relax_field=8,epsilon=1e-8, eval_only=False):
     """Desc Head Loss, per-pixel level triplet loss from https://arxiv.org/pdf/1902.11046.pdf..
@@ -100,111 +101,7 @@ def build_descriptor_loss(source_des, target_des, source_points, tar_points, tar
 
     return loss, recall
 
-def calculate_distribution_wrapping(image_in):
 
-    #this function calculates the positional mean and standard deviation of an image for each row
-    for i in range(image_in.shape[0]):
-        image = image_in[i,0,:,:].clone()
-        np_image = image.cpu().numpy()
-        height, width = np_image.shape
-        positional_mean = []
-        positional_std = []
-
-        mean_matrix = np.empty([height, width])
-        standard_matrix = np.empty([height, width])
-
-        positional_vector = np.arange(width)
-
-
-        for row in range(height):
-            row_sum = np.dot(np_image[row,:],np.ones(width))
-            if row_sum == 0:
-                scaled_row = np_image[row,:]
-            else:
-                scaled_row = np.divide(np_image[row,:],np.ones(width)*row_sum)
-            row_mean = np.dot(scaled_row,positional_vector)
-            positional_mean.append(row_mean)
-
-            #std_positional_vector = np.abs(positional_vector - np.ones(width)*row_mean)
-            std_positional_vector = np.minimum(np.abs(positional_vector - np.ones(width)*row_mean),np.ones(width)*width-np.abs(np.ones(width)*row_mean-positional_vector))
-            std_positional_vector = np.multiply(std_positional_vector,std_positional_vector)
-
-            row_std = np.sqrt(np.dot(scaled_row,std_positional_vector))
-            positional_std.append(row_std)
-
-
-
-        for column in range(width):
-            standard_matrix[:,column] = positional_std
-
-            #mean_matrix[:,column] = np.abs(np.ones(height)*positional_vector[column]-positional_mean)
-            normal_mean = np.abs(np.ones(height)*positional_vector[column]-positional_mean)
-            mean_matrix[:,column] = np.minimum(normal_mean, np.abs(np.ones(height)*width - normal_mean))
-            #print('min of std_matrix:', np.min(standard_matrix))
-
-        std_tensor = torch.from_numpy(standard_matrix)
-        max_std = (width-1)/2
-        std_tensor = torch.div(std_tensor,max_std)
-
-        #print('min of std_tensor:', torch.min(std_tensor))
-
-        mean_tensor = torch.from_numpy(mean_matrix)
-        max_mean = width/2
-        mean_tensor = torch.div(mean_tensor, max_mean)
-        image_in[i, 0, :, :] = mean_tensor.to(image_in.device)
-        image_in[i, 1, :, :] = std_tensor.to(image_in.device)
-    return image_in
-
-def warp_homography_batch(noise_util, sources, homographies, mode='sonar_sim'):
-    """Batch warp keypoints given homographies.
-
-    Parameters
-    ----------
-    sources: torch.Tensor (B,H,W,C)
-        Keypoints vector.
-    homographies: torch.Tensor (B,3,3)
-        Homographies.
-
-    Returns
-    -------
-    warped_sources: torch.Tensor (B,H,W,C)
-        Warped keypoints vector.
-    """
-    B, H, W, _ = sources.shape
-    warped_sources = []
-    if mode == 'sonar_sim' and noise_util:
-        for b in range(B):
-
-            source = sources[b].clone()
-            source = source.view(-1,2)
-
-            source = pol_2_cart(source.unsqueeze(0),
-                                noise_util.fov,
-                                noise_util.r_min,
-                                noise_util.r_max).squeeze(0)
-
-            source = torch.addmm(homographies[b,:,2], source, homographies[b,:,:2].t())
-            source.mul_(1/source[:,2].unsqueeze(1))
-
-            source = cart_2_pol(source.unsqueeze(0),
-                                noise_util.fov,
-                                noise_util.r_min,
-                                noise_util.r_max).squeeze(0)
-
-            source = source[:,:2].contiguous().view(H,W,2)
-
-            warped_sources.append(source)
-    else:
-        for b in range(B):
-            source = sources[b].clone()
-            source = source.view(-1, 2)
-
-            source = torch.addmm(homographies[b, :, 2], source, homographies[b, :, :2].t())
-            source.mul_(1 / source[:, 2].unsqueeze(1))
-
-            source = source[:, :2].contiguous().view(H, W, 2)
-            warped_sources.append(source)
-    return torch.stack(warped_sources, dim=0)
 
 class KeypointNetwithIOLoss(torch.nn.Module):
     """
@@ -236,13 +133,11 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         Extra parameters
     """
     def __init__(
-        self, noise_util=None, keypoint_loss_weight=1.0, descriptor_loss_weight=2.0, score_loss_weight=1.0,
+        self, keypoint_loss_weight=1.0, descriptor_loss_weight=2.0, score_loss_weight=1.0,
         keypoint_net_learning_rate=0.001, with_io=True, use_color=True, do_upsample=True, 
-        do_cross=True, descriptor_loss=True, with_drop=True, keypoint_net_type='KeypointNet',device='cpu', mode = 'sonar_sim', debug = 'False', **kwargs):
+        do_cross=True, descriptor_loss=True, with_drop=True, keypoint_net_type='KeypointNet',device='cpu', debug = 'False', **kwargs):
 
         super().__init__()
-        self.noise_util = noise_util
-        self.mode = mode
         self.device = device
         self.keypoint_loss_weight = keypoint_loss_weight
         self.descriptor_loss_weight = descriptor_loss_weight
@@ -252,7 +147,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
         self.cell = 8 # Size of each output cell. Keep this fixed.
         self.border_remove = 4 # Remove points this close to the border.
-        self.top_k2 = 300
+        self.top_k2 = 500
         self.relax_field = 4
 
         self.debug = debug
@@ -264,8 +159,11 @@ class KeypointNetwithIOLoss(torch.nn.Module):
             self.keypoint_net = KeypointNet(use_color=use_color, do_upsample=do_upsample, with_drop=with_drop, do_cross=do_cross, device = self.device)
         elif keypoint_net_type == 'KeypointResnet':
             self.keypoint_net = KeypointResnet(with_drop=with_drop, device = self.device)
+        elif keypoint_net_type == 'KeypointMAX':
+            self.keypoint_net = ai84_keypointnet( device = self.device)
         else:
             raise NotImplemented('Keypoint net type not supported {}'.format(keypoint_net_type))
+
         self.keypoint_net = self.keypoint_net.to(self.device)
         self.add_optimizer_params('KeypointNet', self.keypoint_net.parameters(), keypoint_net_learning_rate)
 
@@ -278,6 +176,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
         self.train_metrics = {}
         self.vis = {}
+
         # if torch.cuda.current_device() == 0:
         #     print('KeypointNetwithIOLoss:: with io {} with descriptor loss {}'.format(self.with_io, self.descriptor_loss))
 
@@ -307,11 +206,9 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         loss_dict = {}
         B, _, H, W = data['image'].shape
 
-        recall_2d = 0
-        inlier_cnt = 0
+        input_img = data['image'].clone()
+        input_img_aug = data['image_aug'].clone()
 
-        input_img = data['image']/255.
-        input_img_aug = data['image_aug']/255.
         homography = data['homography']
 
         # Get network outputs
@@ -324,11 +221,11 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         target_uv_norm = _normalize_uv_coordinates(target_uv_pred, H, W)
         source_uv_norm = _normalize_uv_coordinates(source_uv_pred, H, W)
 
-        source_uv_warped_norm = warp_homography_batch(self.noise_util,source_uv_norm, homography, mode=self.mode)
+        source_uv_warped_norm = self._warp_homography_batch(source_uv_norm, homography)
         source_uv_warped = _denormalize_uv_coordinates(source_uv_warped_norm, H, W)
 
         # Border mask
-        border_mask = _create_Border_Mask(B, Hc, Wc)
+        border_mask = _create_border_mask(B, Hc, Wc)
         border_mask = border_mask.gt(1e-3).to(self.device)
 
         d_uv_l2_min, d_uv_l2_min_index = _min_l2_norm(source_uv_warped, target_uv_pred, B)
@@ -468,6 +365,35 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
         return int(inlier_mask.sum() > 10 )*torch.nn.functional.mse_loss(inlier_pred, inlier_gt)
 
+    def _warp_homography_batch(self, sources, homographies):
+        """Batch warp keypoints given homographies.
+
+        Parameters
+        ----------
+        sources: torch.Tensor (B,H,W,C)
+            Keypoints vector.
+        homographies: torch.Tensor (B,3,3)
+            Homographies.
+
+        Returns
+        -------
+        warped_sources: torch.Tensor (B,H,W,C)
+            Warped keypoints vector.
+        """
+        B, H, W, _ = sources.shape
+        warped_sources = []
+
+        for b in range(B):
+            source = sources[b].clone()
+            source = source.view(-1, 2)
+
+            source = torch.addmm(homographies[b, :, 2], source, homographies[b, :, :2].t())
+            source.mul_(1 / source[:, 2].unsqueeze(1))
+
+            source = source[:, :2].contiguous().view(H, W, 2)
+            warped_sources.append(source)
+        return torch.stack(warped_sources, dim=0)
+
 def _normalize_uv_coordinates(uv_pred, H, W):
     uv_norm = uv_pred.clone()
     uv_norm[:, 0] = (uv_norm[:, 0] / (float(W - 1) / 2.)) - 1.
@@ -482,13 +408,15 @@ def _denormalize_uv_coordinates(uv_norm, H, W):
     uv_pred = uv_pred.permute(0, 3, 1, 2)
     return uv_pred
 
-def _create_Border_Mask(B, Hc, Wc):
+
+def _create_border_mask(B, Hc, Wc):
     border_mask_ori = torch.ones(B, Hc, Wc)
     border_mask_ori[:, 0] = 0
     border_mask_ori[:, Hc - 1] = 0
     border_mask_ori[:, :, 0] = 0
     border_mask_ori[:, :, Wc - 1] = 0
     return border_mask_ori
+
 
 def _min_l2_norm(source_uv_warped, target_uv_pred, B):
     d_uv_mat_abs = torch.abs(source_uv_warped.view(B, 2, -1).unsqueeze(3) - target_uv_pred.view(B, 2, -1).unsqueeze(2))

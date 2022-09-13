@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 
-from kp2dsonar.utils.image import image_grid
+from kp2d.utils.image import image_grid
 
 
 class KeypointNet(torch.nn.Module):

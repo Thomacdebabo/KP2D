@@ -1,7 +1,7 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
 # Adapted from: https://github.com/rpautrat/SuperPoint/blob/master/superpoint/evaluations/descriptor_evaluation.py
 
-from kp2dsonar.utils.keypoints import warp_keypoints
+from kp2d.utils.keypoints import warp_keypoints
 from kp2dsonar.datasets.noise_model import pol_2_cart,cart_2_pol
 import torch
 
@@ -348,6 +348,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
     #DEBUG PICS
     if debug:
         img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image'].copy()/255).unsqueeze(0))
+        img_debug = norm_img(img_debug)
         img_debug = np.ascontiguousarray((img_debug*255).squeeze(0).numpy().astype(np.uint8).transpose(1,2,0))
 
         img_debug = draw_kps(img_debug, unnormalize_keypoints(corners,f,a), c = (0,0,255))
@@ -359,6 +360,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
         cv2.imshow("hi", img_debug)
 
         img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image'].copy() / 255).unsqueeze(0))
+        img_debug = norm_img(img_debug)
         img_debug = np.ascontiguousarray((img_debug * 255).squeeze(0).numpy().astype(np.uint8).transpose(1, 2, 0))
         query_image = img_debug.copy()
 
@@ -370,6 +372,7 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
         cv2.imshow("hi3", img_debug)
 
         img_debug = noise_util.pol_2_cart_torch(torch.tensor(data['image_aug'].copy()/255).unsqueeze(0))
+        img_debug = norm_img(img_debug)
         img_debug = np.ascontiguousarray((img_debug*255).squeeze(0).numpy().astype(np.uint8).transpose(1,2,0))
         trainImage = img_debug.copy()
 
@@ -387,6 +390,8 @@ def compute_homography_sonar(data, noise_util, keep_k_points=1000, debug = False
 
     return correctness1, correctness5, correctness10, useful_points_ratio, mean_distance, abs_points
 
+def norm_img(img):
+    return (img - img.min())/img.max()
 
 def draw_kps(img_debug, corners, c = (0, 0, 255)):
     for pt in corners[:,:2].astype(np.int32):

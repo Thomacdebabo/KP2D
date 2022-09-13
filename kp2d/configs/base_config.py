@@ -1,6 +1,6 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
 
-"""Default kp2dsonar configuration parameters (overridable in configs/*.yaml)
+"""Default kp2d configuration parameters (overridable in configs/*.yaml)
 """
 
 import os
@@ -31,7 +31,7 @@ cfg.wandb.dir = ''                                       # Wandb save folder
 ### MODEL
 ########################################################################################################################
 cfg.model = CN()
-cfg.model.checkpoint_path = '/data/experiments/kp2dsonar/'              # Checkpoint path for model saving
+cfg.model.checkpoint_path = '/data/experiments/kp2d/'              # Checkpoint path for model saving
 cfg.model.save_checkpoint = True
 
 ########################################################################################################################
@@ -96,13 +96,13 @@ cfg.datasets.augmentation.normalize = True
 cfg.datasets.train = CN()
 cfg.datasets.train.batch_size = 2                                   # Training batch size
 cfg.datasets.train.num_workers = 0   #16 for Euler                                  # Training number of workers
-cfg.datasets.train.path = '/data/datasets/kp2dsonar/coco/train2017/'        # Training data path (COCO dataset)
+cfg.datasets.train.path = '/data/datasets/kp2d/coco/train2017/'        # Training data path (COCO dataset)
 cfg.datasets.train.repeat = 1                                          # Number of times training dataset is repeated per epoch
 ########################################################################################################################
 ### DATASETS.VAL
 ########################################################################################################################
 cfg.datasets.val = CN()
-cfg.datasets.val.path = '/data/datasets/kp2dsonar/HPatches/'     # Validation data path (HPatches)
+cfg.datasets.val.path = '/data/datasets/kp2d/HPatches/'     # Validation data path (HPatches)
 ########################################################################################################################
 ### THESE SHOULD NOT BE CHANGED
 ########################################################################################################################

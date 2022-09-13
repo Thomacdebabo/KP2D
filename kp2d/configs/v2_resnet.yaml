@@ -29,4 +29,4 @@ datasets:
 
 wandb:
     dry_run: False
-    project: "kp2dsonar"
+    project: "kp2d"

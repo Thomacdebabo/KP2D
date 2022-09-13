@@ -10,7 +10,7 @@ import torchvision
 import torchvision.transforms as transforms
 from PIL import Image
 
-from kp2dsonar.utils.image import image_grid
+from kp2d.utils.image import image_grid
 
 def filter_dict(dict, keywords):
     """
@@ -54,27 +54,6 @@ def resize_sample(sample, image_shape, image_interpolation=Image.ANTIALIAS):
     sample['image'] = image_transform(sample['image'])
     return sample
 
-
-def to_tensor_sonar_sample(sample, tensor_type='torch.FloatTensor'):
-    """
-    Casts the keys of sample to tensors.
-
-    Parameters
-    ----------
-    sample : dict
-        Input sample
-    tensor_type : str
-        Type of tensor we are casting to
-
-    Returns
-    -------
-    sample : dict
-        Sample with keys cast as tensors
-    """
-    sample['image'] = sample['image'].type(tensor_type)
-    sample['image_aug'] = sample['image_aug'].type(tensor_type)
-    return sample
-
 def to_tensor_sample(sample, tensor_type='torch.FloatTensor'):
     """
     Casts the keys of sample to tensors.
@@ -91,6 +70,34 @@ def to_tensor_sample(sample, tensor_type='torch.FloatTensor'):
     """
     transform = transforms.ToTensor()
     sample['image'] = transform(sample['image']).type(tensor_type)
+    return sample
+
+def normalize_sample(sample, tensor_type='torch.FloatTensor'):
+    """
+    Casts the keys of sample to tensors.
+    Parameters
+    ----------
+    sample : dict
+        Input sample
+    tensor_type : str
+        Type of tensor we are casting to
+    Returns
+    -------
+    sample : dict
+        Sample with keys cast as tensors
+    """
+
+    sample['image'] = torch.sub(sample['image'],0.5)
+    sample['image'] = torch.mul(sample['image'],2.0)
+
+    sample['image_aug'] = torch.sub(sample['image_aug'],0.5)
+    sample['image_aug'] = torch.mul(sample['image_aug'],2.0)
+    return sample
+
+def a8x_normalize_sample(sample):
+    #TODO: use normalization class of ai8x
+    sample['image'] = sample['image'].sub(0.5).mul(256.).round().clamp(min=-128, max=127).div(128.)
+    sample['image_aug'] = sample['image_aug'].sub(0.5).mul(256.).round().clamp(min=-128, max=127).div(128.)
     return sample
 
 def spatial_augment_sample(sample):

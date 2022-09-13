@@ -14,7 +14,7 @@ model:
         do_upsample: True
         do_cross: True
         descriptor_loss: True
-        keypoint_net_type: "KeypointNet"
+        keypoint_net_type: "KeypointMAX"
     checkpoint_path: '../../../scratch/rueeggth/kp2d'
 
 wandb:
@@ -22,7 +22,7 @@ wandb:
     project: ""
 datasets:
     augmentation:
-        mode: 'sonar_sim'
+        mode: 'quantized_sonar'
         fov: 60
         r_min: 0.1
         r_max: 5.0

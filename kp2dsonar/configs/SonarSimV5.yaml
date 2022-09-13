@@ -14,15 +14,15 @@ model:
         do_upsample: True
         do_cross: True
         descriptor_loss: True
-        keypoint_net_type: "KeypointNet"
-    checkpoint_path: '../../../scratch/rueeggth/kp2d'
+        debug: True
+        keypoint_net_type: "KeypointMAX"
 
 wandb:
     dry_run: True
     project: ""
 datasets:
     augmentation:
-        mode: 'sonar_sim'
+        mode: 'quantized_sonar'
         fov: 60
         r_min: 0.1
         r_max: 5.0
@@ -41,10 +41,8 @@ datasets:
         amp: 70
         artifact_amp: 200
     train:
-        path: '../../../scratch/rueeggth/dataset/SonarDataSets/Simulated'
-        num_workers: 16
-        batch_size: 4
+        path: "D:/MachineLearning/SonarData/SonarDataSets/Simulated"
+        num_workers: 8
+        batch_size: 2
     val:
-        path: "../../../scratch/rueeggth/dataset/SonarDataSets/SimEval"
-
-
+        path: "D:/MachineLearning/SonarData/SonarDataSets/SimEval"

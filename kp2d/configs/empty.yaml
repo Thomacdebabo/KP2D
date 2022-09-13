@@ -9,4 +9,4 @@ datasets:
         batch_size: 3
 
     val:
-        path: "D:/PycharmProjects/KP2D/data/datasets/kp2dsonar/HPatches"
+        path: "D:/PycharmProjects/KP2D/data/datasets/kp2d/HPatches"

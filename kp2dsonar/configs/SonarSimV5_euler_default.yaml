@@ -22,7 +22,7 @@ wandb:
     project: ""
 datasets:
     augmentation:
-        mode: 'sonar_sim'
+        mode: 'default'
         fov: 60
         r_min: 0.1
         r_max: 5.0

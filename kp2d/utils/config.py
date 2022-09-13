@@ -4,7 +4,7 @@ import os
 
 from yacs.config import CfgNode
 
-from kp2dsonar.configs.base_config import get_cfg_defaults
+from kp2d.configs.base_config import get_cfg_defaults
 
 
 def get_default_config(cfg_default):

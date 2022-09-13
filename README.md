@@ -19,6 +19,8 @@ This repository implements the use of KP2D on sonar images and adds some improve
 - remove wandb support
 - remove multigpu support
 ##
+Models and evaluation results can be found [**[here]**](https://drive.google.com/drive/folders/1YP-ZyYxEYugyMI7QwpNScbjHgbOQilxs?usp=sharing)
+
 
 
 
@@ -113,6 +115,17 @@ Evaluation for **`(320, 240)`**:
 | V2*|	0.679 |	0.942 |	0.534 |	0.86  |	0.914 |	0.573 |
 | V3|	0.685 |	0.885 |	0.602 |	0.836 |	0.886 |	0.52  |
 | V4|	0.687 |	0.892 |	0.593 |	0.867 |	0.91  |	0.546 |
+| V4 retrained|	0.638 |	0.857 |	0.510 |	0.824 |	0.881  |	 0.554|
+| V4 quantized|	0.540 |	0.822 | 0.481 |	0.759 | 0.836  |	 0.398|
+
+
+
+| Model	| Repeatability |	Localization |	C1 |	C3 | 	C5 |	MScore |
+|---|---|---|---|---|---|---|
+| V4 retrained|	0.638 |	0.857 |	0.510 |	0.824 |	0.881  |	 0.554|
+| V4 retrained train_eval|	0.596 |	0.872 |	0.332 |	0.710 |	0.782  |	 0.536|
+| V4 quantized|	0.540 |	0.822 | 0.481 |	0.759 | 0.836  |	 0.398|
+| V4 quantized train_eval|	0.517 |	0.833 |	0.312 |	0.641 |0.718  |	 0.386|
 
 
 Evaluation for **`(640, 480)`**:
