@@ -176,7 +176,7 @@ def warp_homography_batch(noise_util, sources, homographies, mode='sonar_sim'):
     """
     B, H, W, _ = sources.shape
     warped_sources = []
-    if mode == 'sonar_sim':
+    if mode == 'sonar_sim' or mode == 'quantized_sonar':
         for b in range(B):
 
             source = sources[b].clone()

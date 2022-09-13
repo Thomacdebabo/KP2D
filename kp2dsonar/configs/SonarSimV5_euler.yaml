@@ -14,7 +14,7 @@ model:
         do_upsample: True
         do_cross: True
         descriptor_loss: True
-        keypoint_net_type: "KeypointResnet"
+        keypoint_net_type: "KeypointNet"
     checkpoint_path: '../../../scratch/rueeggth/kp2dsonar'
 
 wandb:
@@ -26,9 +26,9 @@ datasets:
         fov: 60
         r_min: 0.1
         r_max: 5.0
-        patch_ratio: 0.7
-        scaling_amplitude: 0.5
-        max_angle_div: 2
+        patch_ratio: 0.8
+        scaling_amplitude: 0.3
+        max_angle_div: 4
         super_resolution: 1
         preprocessing_gradient: True
         add_row_noise: True

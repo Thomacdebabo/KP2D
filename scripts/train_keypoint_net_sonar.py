@@ -6,7 +6,10 @@ from kp2dsonar.utils.config import parse_train_file
 from kp2dsonar.utils.logging import printcolor
 from kp2dsonar.utils.train_keypoint_net_utils_sonar import TrainerSonar
 from kp2dsonar.utils.train_keypoint_net_utils import _set_seeds,parse_args
+import warnings
 
+
+warnings.filterwarnings("ignore")
 
 def main(file):
     """
@@ -36,6 +39,7 @@ def main(file):
     printcolor(config.model.params, 'red')
 
     trainer = TrainerSonar(config)
+    trainer.evaluation(0)
     trainer.train()
 
 if __name__ == '__main__':

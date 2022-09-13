@@ -37,7 +37,7 @@ class image_transforms():
 
         sample = to_tensor_sample(sample)
         sample = self.noise_util.pol_2_cart_sample(sample)
-        #sample = spatial_augment_sample(sample)
+        sample = spatial_augment_sample(sample)
         sample = self.noise_util.augment_sample(sample)
 
         sample = self.noise_util.filter_sample(sample)
@@ -47,7 +47,7 @@ class image_transforms():
         # if self.noise_util.post_noise:
         #     sample = self.noise_util.add_noise_function(sample)
 
-        #ample = normalize_sample(sample)
+        sample = normalize_sample(sample)
 
         return sample
 
@@ -65,12 +65,18 @@ class image_transforms():
 
 
     def _quantized_sonar(self, sample):
+        sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
+
+        sample = to_tensor_sample(sample)
         sample = self.noise_util.pol_2_cart_sample(sample)
+        sample = spatial_augment_sample(sample)
         sample = self.noise_util.augment_sample(sample)
 
         sample = self.noise_util.filter_sample(sample)
         sample = self.noise_util.cart_2_pol_sample(sample)
-        sample = to_tensor_sonar_sample(sample)
+        sample = self.noise_util.squeeze(sample)
+        sample = self.noise_util.sample_2_RGB(sample)
+
         sample = a8x_normalize_sample(sample)
 
         return sample
@@ -111,8 +117,6 @@ class image_transforms_eval():
         sample = self.noise_util.cart_2_pol_sample(sample)
         sample = self.noise_util.squeeze(sample)
         sample = self.noise_util.sample_2_RGB(sample)
-        if self.noise_util.post_noise:
-            sample = self.noise_util.add_noise_function(sample)
 
         sample = normalize_sample(sample)
 
@@ -127,9 +131,17 @@ class image_transforms_eval():
 
     def _quantized_sonar(self, sample): #TODO: implement
         sample = resize_sample(sample, image_shape=self.config.augmentation.image_shape)
-        sample = spatial_augment_sample(sample)
+
         sample = to_tensor_sample(sample)
-        sample = ha_augment_sample(sample)
+        sample = self.noise_util.pol_2_cart_sample(sample)
+        sample = spatial_augment_sample(sample)
+        sample = self.noise_util.augment_sample(sample)
+
+        sample = self.noise_util.filter_sample(sample)
+        sample = self.noise_util.cart_2_pol_sample(sample)
+        sample = self.noise_util.squeeze(sample)
+        sample = self.noise_util.sample_2_RGB(sample)
+
         sample = a8x_normalize_sample(sample)
         return sample
     def _default(self, sample):
@@ -191,7 +203,8 @@ def setup_datasets_and_dataloaders_eval_sonar(config,noise_util):
 
 class TrainerSonar(Trainer):
     def __init__(self, config):
-
+        self.debug = True
+        self.conf_threshold = 0.7
         self.noise_util = NoiseUtility(config.datasets.augmentation.image_shape,
                               fov=config.datasets.augmentation.fov,
                               r_min=config.datasets.augmentation.r_min,
@@ -222,9 +235,11 @@ class TrainerSonar(Trainer):
         use_color = self.config.model.params.use_color
         result_dict = evaluate_keypoint_net_sonar(self.data_loader,
                                                   model_submodule(self.model).keypoint_net,
-                                                  self.noise_util,
+                                                  noise_util=self.noise_util,
                                                   output_shape=params['res'],
                                                   top_k=params['top_k'],
+                                                  conf_threshold=self.conf_threshold,
+                                                  debug=self.debug,
                                                   use_color=use_color)
         if self.summary:
             self.summary["evaluation"][completed_epoch] = result_dict
