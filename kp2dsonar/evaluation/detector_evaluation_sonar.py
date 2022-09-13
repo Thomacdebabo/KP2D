@@ -10,7 +10,7 @@ import numpy as np
 
 from kp2d.utils.keypoints import warp_keypoints
 
-from kp2d.datasets.noise_model import pol_2_cart,cart_2_pol
+from kp2dsonar.datasets.noise_model import pol_2_cart,cart_2_pol
 
 def normalize_keypoints(kp, f , a):
     return kp / f - a

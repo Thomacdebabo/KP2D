@@ -2,7 +2,7 @@
 # Adapted from: https://github.com/rpautrat/SuperPoint/blob/master/superpoint/evaluations/descriptor_evaluation.py
 
 from kp2d.utils.keypoints import warp_keypoints
-from kp2d.datasets.noise_model import pol_2_cart,cart_2_pol
+from kp2dsonar.datasets.noise_model import pol_2_cart,cart_2_pol
 import torch
 
 #Pasted for debug

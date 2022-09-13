@@ -4,7 +4,7 @@ import os
 import torch
 from kp2d.utils.config import parse_train_file
 from kp2d.utils.logging import printcolor
-from kp2d.utils.train_keypoint_net_utils_sonar import TrainerSonar
+from kp2dsonar.utils.train_keypoint_net_utils_sonar import TrainerSonar
 from kp2d.utils.train_keypoint_net_utils import _set_seeds,parse_args
 import warnings
 

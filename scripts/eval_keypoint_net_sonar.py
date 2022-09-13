@@ -10,14 +10,12 @@ from datetime import datetime
 from termcolor import colored
 from torch.utils.data import DataLoader
 
-from kp2d.datasets.sonarsim import SonarSimLoader
-from kp2d.evaluation.evaluate import evaluate_keypoint_net_sonar
+from kp2dsonar.datasets.sonarsim import SonarSimLoader
+from kp2dsonar.evaluation.evaluate_sonar import evaluate_keypoint_net_sonar
 from kp2d.networks.keypoint_net import KeypointNet
 from kp2d.networks.keypoint_resnet import KeypointResnet
 from kp2d.networks.ai84_keypointnet import ai84_keypointnet
-from kp2d.datasets.augmentations import resize_sample
-from kp2d.datasets.augmentations_sonar import to_tensor_sonar_sample
-from kp2d.datasets.noise_model import NoiseUtility
+from kp2dsonar.datasets.noise_model import NoiseUtility
 import glob
 from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
                                          spatial_augment_sample,

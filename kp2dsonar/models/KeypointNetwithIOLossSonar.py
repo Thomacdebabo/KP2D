@@ -1,5 +1,5 @@
 from kp2d.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
-from kp2d.datasets.noise_model import pol_2_cart, cart_2_pol
+from kp2dsonar.datasets.noise_model import pol_2_cart, cart_2_pol
 import torch
 
 class KeypointNetWithIOLossSonar(KeypointNetwithIOLoss):

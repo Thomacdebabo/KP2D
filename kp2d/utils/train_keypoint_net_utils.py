@@ -4,7 +4,7 @@ import os
 import random
 from math import pi
 import numpy as np
-import torch
+
 import torch.utils.data.distributed
 from torch.utils.data import ConcatDataset, DataLoader
 
@@ -12,10 +12,8 @@ from kp2d.utils.logging import printcolor, timing
 from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
                                          spatial_augment_sample,
                                          to_tensor_sample, normalize_sample, a8x_normalize_sample)
-from kp2d.datasets.augmentations_sonar import to_tensor_sonar_sample
 from kp2d.datasets.coco import COCOLoader
 from kp2d.datasets.patches_dataset import PatchesDataset
-from kp2d.datasets.sonarsim import SonarSimLoader
 
 from datetime import datetime
 

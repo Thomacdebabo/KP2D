@@ -1,17 +1,17 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
 
-from kp2d.models.KeypointNetwithIOLossSonar import KeypointNetWithIOLossSonar
+from kp2dsonar.models.KeypointNetwithIOLossSonar import KeypointNetWithIOLossSonar
 from math import pi
 from torch.utils.data import ConcatDataset, DataLoader
 
 from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
                                          spatial_augment_sample,
                                          to_tensor_sample, normalize_sample, a8x_normalize_sample)
-from kp2d.datasets.augmentations_sonar import to_tensor_sonar_sample
+from kp2dsonar.datasets.augmentations_sonar import to_tensor_sonar_sample
 
-from kp2d.datasets.sonarsim import SonarSimLoader
-from kp2d.datasets.noise_model import NoiseUtility
-from kp2d.evaluation.evaluate import evaluate_keypoint_net_sonar
+from kp2dsonar.datasets.sonarsim import SonarSimLoader
+from kp2dsonar.datasets.noise_model import NoiseUtility
+from kp2dsonar.evaluation.evaluate_sonar import evaluate_keypoint_net_sonar
 
 from kp2d.utils.train_keypoint_net_utils import (_set_seeds, Trainer, model_submodule)
 def _print_result(result_dict):
