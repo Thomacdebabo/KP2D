@@ -200,7 +200,7 @@ def setup_datasets_and_dataloaders_eval_sonar(config,noise_util):
 
 class TrainerSonar(Trainer):
     def __init__(self, config):
-        self.debug = True
+        self.debug = config.model.params.debug
         self.conf_threshold = 0.7
         self.noise_util = NoiseUtility(config.datasets.augmentation.image_shape,
                               fov=config.datasets.augmentation.fov,
