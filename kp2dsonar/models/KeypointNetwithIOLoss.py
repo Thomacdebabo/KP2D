@@ -413,7 +413,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
             cv2.imshow('org', self.vis['img_ori'])
             cv2.imshow('heatmap', self.vis['heatmap'])
             cv2.imshow('aug', self.vis['aug'])
-            cv2.waitKey(0)
+            cv2.waitKey(1)
         return loss_2d, recall_2d
 
     def _compute_io_loss(self, source_score,source_feat,target_feat, target_score,
