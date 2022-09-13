@@ -97,7 +97,6 @@ class image_transforms():
     def __call__(self, sample):
         return self.transform(sample)
 
-#Not yet in use
 class image_transforms_eval():
     def __init__(self, noise_util,config):
         self.noise_util = noise_util
@@ -110,7 +109,6 @@ class image_transforms_eval():
 
         sample = to_tensor_sample(sample)
         sample = self.noise_util.pol_2_cart_sample(sample)
-        sample = spatial_augment_sample(sample)
         sample = self.noise_util.augment_sample(sample)
 
         sample = self.noise_util.filter_sample(sample)
@@ -134,7 +132,6 @@ class image_transforms_eval():
 
         sample = to_tensor_sample(sample)
         sample = self.noise_util.pol_2_cart_sample(sample)
-        sample = spatial_augment_sample(sample)
         sample = self.noise_util.augment_sample(sample)
 
         sample = self.noise_util.filter_sample(sample)
