@@ -3,15 +3,13 @@
 import os
 import torch
 from kp2d.utils.config import parse_train_file
-from kp2d.utils.logging import printcolor, timing
-from kp2d.utils.train_keypoint_net_utils import (_set_seeds, Trainer, parse_args)
-
+from kp2d.utils.logging import printcolor
+from kp2dsonar.utils.train_keypoint_net_utils_sonar import TrainerSonar
+from kp2d.utils.train_keypoint_net_utils import _set_seeds,parse_args
 import warnings
+
+
 warnings.filterwarnings("ignore")
-
-
-
-
 
 def main(file):
     """
@@ -34,19 +32,13 @@ def main(file):
     torch.set_num_threads(n_threads)
     torch.backends.cudnn.benchmark = True
 
-    printcolor('-'*25 + 'SINGLE GPU ' + '-'*25, 'cyan')
-    
     if config.arch.seed is not None:
         _set_seeds(config.arch.seed)
 
-    printcolor('-'*25 + ' MODEL PARAMS ' + '-'*25)
+    printcolor('-' * 25 + ' MODEL PARAMS ' + '-' * 25)
     printcolor(config.model.params, 'red')
 
-
-    if config.datasets.augmentation.mode == "sonar_sim":
-        warnings.warn('Sonar Simulator mode cannot be used in this script. Please use train_keypoint_net_sonar instead. default will be used instead.')
-
-    trainer = Trainer(config)
+    trainer = TrainerSonar(config)
     trainer.evaluation(0)
     trainer.train()
 

@@ -32,7 +32,7 @@ class KeypointNet(torch.nn.Module):
         super().__init__()
 
         self.training = True
-
+        self.device = device
         self.use_color = use_color
         self.with_drop = with_drop
         self.do_cross = do_cross

@@ -1,7 +1,0 @@
-image
-=====
-
-.. automodule:: kp2d.utils.image
-   :members:
-   :undoc-members:
-   :show-inheritance:

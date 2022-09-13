@@ -6,11 +6,45 @@ import argparse
 import torch
 from termcolor import colored
 from torch.utils.data import DataLoader
-
+from kp2d.utils.config import parse_train_file
 from kp2d.datasets.patches_dataset import PatchesDataset
 from kp2d.evaluation.evaluate import evaluate_keypoint_net
 from kp2d.networks.keypoint_net import KeypointNet
 from kp2d.networks.keypoint_resnet import KeypointResnet
+from kp2d.networks.ai84_keypointnet import ai84_keypointnet
+from kp2d.utils.train_keypoint_net_utils import (setup_datasets_and_dataloaders_eval)
+def _load_model(args):
+    checkpoint = torch.load(args.pretrained_model)
+    model_args = checkpoint['config']['model']['params']
+    mode = 'default'
+    # Create and load keypoint net
+    if 'keypoint_net_type' in checkpoint['config']['model']['params']:
+        net_type = checkpoint['config']['model']['params']['keypoint_net_type']
+    else:
+        net_type = 'KeypointNet'  # default when no type is specified
+
+    # Create and load keypoint net
+    if net_type == 'KeypointNet':
+        keypoint_net = KeypointNet(use_color=model_args['use_color'],
+                                   do_upsample=model_args['do_upsample'],
+                                   do_cross=model_args['do_cross'], device="cuda")
+    elif net_type == 'KeypointResnet':
+        keypoint_net = KeypointResnet(device="cuda")
+
+    elif net_type == 'KeypointMAX':
+        keypoint_net = ai84_keypointnet(device="cuda")
+        mode = 'quantized_default'
+    else:
+        raise KeyError("net_type not recognized: " + str(net_type))
+
+    keypoint_net.load_state_dict(checkpoint['state_dict'])
+    keypoint_net = keypoint_net.cuda()
+    keypoint_net.eval()
+
+    print('Loaded KeypointNet from {}'.format(args.pretrained_model))
+    print('KeypointNet params {}'.format(model_args))
+    print(checkpoint['config'])
+    return keypoint_net, mode, net_type
 
 def main():
     parser = argparse.ArgumentParser(
@@ -18,46 +52,26 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--pretrained_model", type=str, help="pretrained model path")
     parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
-
+    config = parse_train_file(r'/kp2d\configs\v4.yaml')
     args = parser.parse_args()
-    checkpoint = torch.load(args.pretrained_model)
-    model_args = checkpoint['config']['model']['params']
-
-    # Create and load keypoint net
-    if 'keypoint_net_type' in checkpoint['config']['model']['params']:
-        net_type = checkpoint['config']['model']['params']['keypoint_net_type']
-    else:
-        net_type = 'KeypointNet' # default when no type is specified
-
-    # Create and load keypoint net
-    if net_type == 'KeypointNet':
-        keypoint_net = KeypointNet(use_color=model_args['use_color'],
-                                do_upsample=model_args['do_upsample'],
-                                do_cross=model_args['do_cross'])
-    elif net_type == 'KeypointResnet':
-        keypoint_net = KeypointResnet()
-    else:
-        raise KeyError ("net_type not recognized: " + str(net_type))
-    keypoint_net.load_state_dict(checkpoint['state_dict'])
-    keypoint_net = keypoint_net.cuda()
-    keypoint_net.eval()
-    print('Loaded KeypointNet from {}'.format(args.pretrained_model))
-    print('KeypointNet params {}'.format(model_args))
+    keypoint_net, mode, net_type = _load_model(args)
 
     eval_params = [{'res': (320, 240), 'top_k': 300, }] if net_type is KeypointNet else [{'res': (320, 256), 'top_k': 300, }] # KeypointResnet needs (320,256)
+    eval_params += [{'res': (320, 240), 'top_k': 1500, }]
     eval_params += [{'res': (640, 480), 'top_k': 1000, }]
 
     for params in eval_params:
-        hp_dataset = PatchesDataset(root_dir=args.input_dir, use_color=True,
-                                    output_shape=params['res'], type='a')
-        data_loader = DataLoader(hp_dataset,
-                                 batch_size=1,
-                                 pin_memory=False,
-                                 shuffle=False,
-                                 num_workers=8,
-                                 worker_init_fn=None,
-                                 sampler=None)
-
+        # hp_dataset = PatchesDataset(root_dir=args.input_dir, use_color=True,
+        #                             output_shape=params['res'], type='a', mode=mode)
+        # data_loader = DataLoader(hp_dataset,
+        #                          batch_size=1,
+        #                          pin_memory=False,
+        #                          shuffle=False,
+        #                          num_workers=8,
+        #                          worker_init_fn=None,
+        #                          sampler=None)
+        config.datasets.augmentation.image_shape = params['res']
+        hp_dataset, data_loader = setup_datasets_and_dataloaders_eval(config.datasets)
         print(colored('Evaluating for {} -- top_k {}'.format(params['res'], params['top_k']),'green'))
         rep, loc, c1, c3, c5, mscore = evaluate_keypoint_net(
             data_loader,

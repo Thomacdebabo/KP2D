@@ -1,6 +1,0 @@
-utils
-=====
-
-.. toctree::
-   utils.keypoints
-   utils.image

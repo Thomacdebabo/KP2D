@@ -91,7 +91,7 @@ def to_gray_normalized(images):
     """
     assert len(images.shape) == 4
     images -= 0.5
-    images *= 0.225
+    images *= 2.0
     normalized_images = images.mean(1).unsqueeze(1) 
     return normalized_images
 
@@ -110,6 +110,27 @@ def to_color_normalized(images):
         Normalized grayscale images.
     """
     assert len(images.shape) == 4
+    images -= 0.5
+    images *= 2.0
+    #images *= 0.225
+    print(images.max())
+    return images
+
+
+def to_color_normalized_sonar(images):
+    """Performs image normalization and converts images to grayscale (preserving dimensions)
+
+    Parameters
+    ----------
+    images: torch.Tensor
+        Input images.
+
+    Returns
+    -------
+    normalized_images: torch.Tensor
+        Normalized grayscale images.
+    """
+    assert len(images.shape) == 4
     # images -= 0.5
     # images *= 0.225
-    return images/255.0
+    return images / 255.0

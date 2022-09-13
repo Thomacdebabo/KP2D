@@ -1,7 +1,0 @@
-detector_evaluation
-===================
-
-.. automodule:: kp2d.evaluation.detector_evaluation
-   :members:
-   :undoc-members:
-   :show-inheritance:
