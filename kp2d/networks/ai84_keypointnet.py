@@ -1,6 +1,6 @@
 from torch import nn
 import torch
-import ai8x
+import ai8x.ai8x as ai8x
 
 from kp2d.utils.image import image_grid
 from kp2d.utils.logging import timing
