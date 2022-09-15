@@ -24,7 +24,7 @@ from tqdm import tqdm
 import json
 from kp2d.evaluation.evaluate import evaluate_keypoint_net
 from kp2d.models.KeypointNetwithIOLoss import KeypointNetwithIOLoss
-
+import ai8x
 def parse_args():
     """Parse arguments for training script"""
     parser = argparse.ArgumentParser(description='KP2D training script')
@@ -189,6 +189,11 @@ class Trainer:
         self.scaler = torch.cuda.amp.GradScaler()
         printcolor('({}) length: {}'.format("Train", len(self.train_dataset)))
 
+        #Pseudocode
+        self.qat_policy = {'start_epoch': 10, 'weight_bits': 8}
+        self.nas_handler = None
+        #self.compression_scheduler = distiller.CompressionScheduler(model)
+
     #These are different for children
     def init_datasets(self, config):
         self.train_dataset, self.train_loader = setup_datasets_and_dataloaders(config.datasets)
@@ -286,10 +291,11 @@ class Trainer:
 
     def train_step(self, data):
         # calculate loss
+        #self.compression_scheduler.on_minibatch_begin(epoch)
         self.optimizer.zero_grad()
         data_cuda = sample_to_device(data, self.config.device)
         loss, recall = self.model(data_cuda)
-
+        #self.compression_scheduler.before_backward_pass(epoch)
         # compute gradient
         loss.backward()
 
@@ -298,6 +304,7 @@ class Trainer:
         for key, data in self.model.keypoint_net.state_dict().items():
             l.append(data.max().cpu().numpy())
         self.optimizer.step()
+        #self.compression_scheduler.on_minibatch_end(epoch)
         return loss, recall
 
     def train_single_epoch(self, epoch, log_freq = 1000):
@@ -342,13 +349,23 @@ class Trainer:
 
         self.summary["train"][epoch] = running_summary
 
+
+    def init_qat(self):
+        ai8x.fuse_bn_layers(self.model.keypoint_net)
+        ai8x.initiate_qat(self.model.keypoint_net, self.qat_policy)
+        self.model.keypoint_net.to(self.device)
+
     def train(self):
 
         for epoch in range(self.config.arch.epochs):
             # train for one epoch (only log if eval to have aligned steps...)
             printcolor("\n--------------------------------------------------------------")
-            self.train_single_epoch(epoch)
 
+            if self.qat_policy['start_epoch'] == epoch:
+                self.init_qat()
+            # self.compression_scheduler.on_epoch_begin(epoch)
+            self.train_single_epoch(epoch)
+            # self.compression_scheduler.on_epoch_end(epoch)
             try:
                 self.evaluation(epoch + 1)
             except:
