@@ -190,7 +190,7 @@ class Trainer:
         printcolor('({}) length: {}'.format("Train", len(self.train_dataset)))
 
         #Pseudocode
-        self.qat_policy = {'start_epoch': 10, 'weight_bits': 8}
+        self.qat_policy = {'start_epoch': -1, 'weight_bits': 8}
         self.nas_handler = None
         #self.compression_scheduler = distiller.CompressionScheduler(model)
 
