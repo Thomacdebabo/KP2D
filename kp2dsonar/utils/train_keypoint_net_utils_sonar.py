@@ -12,7 +12,7 @@ from kp2dsonar.datasets.augmentations_sonar import to_tensor_sonar_sample
 from kp2dsonar.datasets.sonarsim import SonarSimLoader
 from kp2dsonar.datasets.noise_model import NoiseUtility
 from kp2dsonar.evaluation.evaluate_sonar import evaluate_keypoint_net_sonar
-
+import numpy as np
 from kp2d.utils.train_keypoint_net_utils import (_set_seeds, Trainer, model_submodule)
 def _print_result(result_dict):
     for k in result_dict.keys():
@@ -22,7 +22,7 @@ def _print_result(result_dict):
 global _worker_init_fn
 def _worker_init_fn(worker_id):
     """Worker init fn to fix the seed of the workers"""
-    _set_seeds(42 + worker_id)
+    _set_seeds((np.random.get_state()[1][0] + np.random.get_state()[1][worker_id+1] + worker_id)%(2**32-1))
 
 class image_transforms():
     def __init__(self, noise_util,config):

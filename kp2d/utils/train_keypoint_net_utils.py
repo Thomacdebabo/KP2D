@@ -44,7 +44,7 @@ def sample_to_device(data, device):
 global _worker_init_fn
 def _worker_init_fn(worker_id):
     """Worker init fn to fix the seed of the workers"""
-    _set_seeds(42 + worker_id)
+    _set_seeds((np.random.get_state()[1][0] + np.random.get_state()[1][worker_id+1] + worker_id)%(2**32-1))
 
 class image_transforms():
     def __init__(self, config):

@@ -21,13 +21,15 @@ from kp2d.datasets.augmentations import (ha_augment_sample, resize_sample,
                                          spatial_augment_sample,
                                          to_tensor_sample, normalize_sample, a8x_normalize_sample)
 from kp2d.utils.train_keypoint_net_utils import _set_seeds
+import numpy as np
 def _print_result(result_dict):
     for k in result_dict.keys():
         print("%s: %.3f" %( k, result_dict[k]))
 global _worker_init_fn
+global _worker_init_fn
 def _worker_init_fn(worker_id):
     """Worker init fn to fix the seed of the workers"""
-    _set_seeds(42 + worker_id)
+    _set_seeds((np.random.get_state()[1][0] + np.random.get_state()[1][worker_id+1] + worker_id)%(2**32-1))
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Script for KeyPointNet testing',

@@ -2,7 +2,7 @@
 # Example usage: python scripts/eval_keypoint_net.sh --pretrained_model /data/models/kp2d/v4.pth --input_dir /data/datasets/kp2d/HPatches/
 
 import argparse
-
+import ai8x.ai8x as ai8x
 import torch
 from termcolor import colored
 from torch.utils.data import DataLoader
@@ -34,11 +34,18 @@ def _load_model(args):
     elif net_type == 'KeypointMAX':
         keypoint_net = ai84_keypointnet(device="cuda")
         mode = 'quantized_default'
+        ai8x.fuse_bn_layers(keypoint_net)
+        ai8x.update_model(keypoint_net)
     else:
         raise KeyError("net_type not recognized: " + str(net_type))
 
+
     keypoint_net.load_state_dict(checkpoint['state_dict'])
     keypoint_net = keypoint_net.cuda()
+    if net_type == 'KeypointMax':
+        ai8x.fuse_bn_layers(keypoint_net)
+        ai8x.initiate_qat(keypoint_net, {'start_epoch': -1, 'weight_bits': 8})
+        ai8x.update_model(keypoint_net)
     keypoint_net.eval()
 
     print('Loaded KeypointNet from {}'.format(args.pretrained_model))
@@ -52,13 +59,13 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--pretrained_model", type=str, help="pretrained model path")
     parser.add_argument("--input_dir", required=True, type=str, help="Folder containing input images")
-    config = parse_train_file(r'/kp2d\configs\v4.yaml')
+    config = parse_train_file(r'../kp2d\configs\v4.yaml')
     args = parser.parse_args()
     keypoint_net, mode, net_type = _load_model(args)
 
-    eval_params = [{'res': (320, 240), 'top_k': 300, }] if net_type is KeypointNet else [{'res': (320, 256), 'top_k': 300, }] # KeypointResnet needs (320,256)
-    eval_params += [{'res': (320, 240), 'top_k': 1500, }]
-    eval_params += [{'res': (640, 480), 'top_k': 1000, }]
+    eval_params = [{'res': (240, 320), 'top_k': 300, }] if net_type is KeypointNet else [{'res': (256, 320), 'top_k': 300, }] # KeypointResnet needs (320,256)
+    eval_params += [{'res': (240, 320), 'top_k': 1500, }]
+    eval_params += [{'res': (480, 640), 'top_k': 1000, }]
 
     for params in eval_params:
         # hp_dataset = PatchesDataset(root_dir=args.input_dir, use_color=True,
